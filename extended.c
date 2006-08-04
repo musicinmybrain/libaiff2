@@ -14,6 +14,7 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
 
+#define LIBAIFF 1
 #include <libaiff/libaiff.h>
 #include "private.h"
 #include <math.h>

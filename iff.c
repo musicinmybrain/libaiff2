@@ -14,6 +14,7 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
 
+#define LIBAIFF 1
 #include <libaiff/libaiff.h>
 #include <libaiff/endian.h>
 #include "private.h"

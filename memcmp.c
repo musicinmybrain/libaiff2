@@ -30,6 +30,7 @@
  * SUCH DAMAGE.
  */
 
+#define LIBAIFF 1
 #include <libaiff/libaiff.h>
 #include "private.h"
 #include <stdio.h>

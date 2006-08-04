@@ -216,5 +216,57 @@ int AIFF_WriteMarker(AIFF_WriteRef,uint32_t,char*) ;
 int AIFF_EndWritingMarkers(AIFF_WriteRef) ;
 int AIFF_WriteClose(AIFF_WriteRef) ;
 
+#ifndef LIBAIFF
+
+#ifdef HAVE_BZERO
+#undef HAVE_BZERO
+#endif
+#ifdef HAVE_INTTYPES_H
+#undef HAVE_INTTYPES_H
+#endif
+#ifdef HAVE_MEMORY_H
+#undef HAVE_MEMORY_H
+#endif
+#ifdef HAVE_MEMSET
+#undef HAVE_MEMSET
+#endif
+#ifdef HAVE_STDINT_H
+#undef HAVE_STDINT_H
+#endif
+#ifdef HAVE_STDLIB_H
+#undef HAVE_STDLIB_H
+#endif
+#ifdef HAVE_STRINGS_H
+#undef HAVE_STRINGS_H
+#endif
+#ifdef HAVE_STRING_H
+#undef HAVE_STRING_H
+#endif
+#ifdef HAVE_SYS_STAT_H
+#undef HAVE_SYS_STAT_H
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#undef HAVE_SYS_TYPES_H
+#endif
+#ifdef HAVE_UNISTD_H
+#undef HAVE_UNISTD_H
+#endif
+
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+
+#ifdef STDC_HEADERS
+#undef STDC_HEADERS
+#endif
+#ifdef WORDS_BIGENDIAN
+#undef WORDS_BIGENDIAN
+#endif
+
+#endif
+
+
 #endif
 
