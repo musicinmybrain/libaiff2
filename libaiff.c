@@ -790,7 +790,7 @@ int AIFF_StartWritingMarkers(AIFF_WriteRef w)
 		return -1 ;
 	w->len += 2 ;
 	
-	w->markerPos = 1 ;
+	w->markerPos = 0 ;
 	w->stat = 4 ;
 
 	return 1 ;
