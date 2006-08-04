@@ -1,0 +1,29 @@
+
+LibAiff 2.0
+=====================================
+This is a beta version of LibAiff.
+It doesn`t support yet all the
+AIFF features:
+
+To-do-list:
+	* Implementing <comments> for each <marker>
+	  (with timestamp, etc.).
+	  
+	* A more intense beta-testing, specially on little-endian
+	  platforms (AIFF is a big-endian format).
+	  Some LibAiff features were tested only on big-endian,
+	  although they should work well on little-endian there may
+	  be some bugs...
+
+        * Beta-testing on AIFC files.
+
+	* Implementing some compression formats for AIFC
+	  files, like u-Law, a-Law, etc.
+
+Any comments? Want to help with this project?
+	+ Contact me on <marcotrillo@gmail.com>
+
+	Thanks :)
+
+
+

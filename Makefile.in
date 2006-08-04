@@ -1,0 +1,44 @@
+# Makefile for libaiff 2.0
+CC = @CC@
+RANLIB = @RANLIB@
+AR = ar
+CFLAGS = @DEFS@ -I. -Ilibaiff -Wall -ansi -pedantic @CFLAGS@
+prefix = @prefix@
+
+objs = iff.o aifx.o lpcm.o libaiff.o memcmp.o extended.o
+
+all: libaiff.a
+
+install: libaiff.a
+	cp libaiff.a $(prefix)/lib
+	chmod 0644 $(prefix)/lib/libaiff.a
+	cp -R ./libaiff $(prefix)/include/libaiff
+	chmod 0755 $(prefix)/include/libaiff
+	chmod 0644 $(prefix)/include/libaiff/*
+	rm -f $(prefix)/include/libaiff/config.h.in
+
+uninstall: deinstall
+
+deinstall:
+	rm -f $(prefix)/lib/libaiff.a
+	rm -rf $(prefix)/include/libaiff
+
+libaiff.a: $(objs)
+	$(AR) cru $@ $(objs)
+	$(RANLIB) $@
+
+clean:
+	rm -f *.o libaiff.a
+
+cleanconfig:
+	rm -f config.log config.status libaiff/config.h Makefile
+
+cleanall: clean cleanconfig
+
+iff.o: iff.c
+aifx.o: aifx.c
+lpcm.o: lpcm.c
+libaiff.o: libaiff.c
+extended.o: extended.c
+memcmp.o: memcmp.c
+
