@@ -1,7 +1,7 @@
 /* $Id$ */
 /*-
  * Copyright (c) 2005, 2006 Marco Trillo <marcotrillo@gmail.com>
- * All rights reserceed.
+ * All rights reserved.
  *
  * This source code is licensed under the GNU Lesser General
  * Public License, as described on the file <LGPL.txt>
