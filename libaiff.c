@@ -390,7 +390,12 @@ AIFF_WriteRef AIFF_WriteOpen(const char* file)
 	return w ;
 }
 
-int AIFF_SetSoundFormat( AIFF_WriteRef w,int channels,int samplingRate,
+int AIFF_SetAttribute( AIFF_WriteRef w, IFFType attr, char* value )
+{
+	return set_iff_attribute( w, attr, value );
+}
+
+int AIFF_SetSoundFormat( AIFF_WriteRef w, int channels, int samplingRate,
 		int bitsPerSample )
 {
 	double sRate ;
