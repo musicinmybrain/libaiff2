@@ -1,3 +1,4 @@
+/* $Id$ */
 
 /* 
  * == Interchange File Format (IFF) ==

@@ -1,3 +1,4 @@
+/* $Id$ */
 
 #if !defined(HAVE_MEMSET) && defined(HAVE_BZERO)
 #ifdef HAVE_STRINGS_H

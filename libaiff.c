@@ -1,4 +1,4 @@
-/* $ libaiff -- libaiff.c $ */
+/* $Id$ */
 /*-
  * Copyright (c) 2005, 2006 Marco Trillo <marcotrillo@gmail.com>
  * All rights reserceed.
