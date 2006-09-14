@@ -10,11 +10,11 @@
  * distribute, sublicense, and/or sell copies of the
  * Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice
  * shall be included in all copies or substantial portions of
  * the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
  * KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
@@ -42,132 +42,120 @@
 #include <sys/types.h>
 #endif
 
-void lpcm_swap_samples(int segmentSize,int flags,void* from,void* to,int nsamples)
+#ifdef WORDS_BIGENDIAN
+#define NOT_HOST_ENDIAN		LPCM_LTE_ENDIAN
+#define ARRANGE_ENDIAN_16(x)	ARRANGE_LE16(x)
+#define ARRANGE_ENDIAN_32(x)	ARRANGE_LE32(x)
+#else
+#define NOT_HOST_ENDIAN		LPCM_BIG_ENDIAN
+#define ARRANGE_ENDIAN_16(x)	ARRANGE_BE16(x)
+#define ARRANGE_ENDIAN_32(x)	ARRANGE_BE32(x)
+#endif
+
+void 
+lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples)
 {
 	register int n = nsamples;
 	register int i;
 	/* 8 bit */
-	uint8_t* fubytes = (uint8_t*)from ;
-	uint8_t* ubytes = (uint8_t*)to ;
+	uint8_t *fubytes = (uint8_t *) from;
+	uint8_t *ubytes = (uint8_t *) to;
 	/* 16 bit */
-	int16_t* fwords = (int16_t*)from ;
-	int16_t* words = (int16_t*)to ;
+	int16_t *fwords = (int16_t *) from;
+	int16_t *words = (int16_t *) to;
 	/* 32 bit */
-	int32_t* fdwords = (int32_t*)from ;
-	int32_t* dwords = (int32_t*)to ;
+	int32_t *fdwords = (int32_t *) from;
+	int32_t *dwords = (int32_t *) to;
 	/* 24 bit */
-	uint8_t x,y,z ;
-	
-	switch( segmentSize )
-	{
-		case 2:
-			switch( flags )
-			{
-#ifndef WORDS_BIGENDIAN
-				case LPCM_BIG_ENDIAN:
-					for( i=0; i<n; ++i )
-						words[i] = ARRANGE_BE16( fwords[i] ) ;
-					break ;
-#else
-				case LPCM_LTE_ENDIAN:
-					for( i=0; i<n; ++i )
-						words[i] = ARRANGE_LE16( fwords[i] ) ;
-					break ;
-#endif
-			}
-			break ;
-		case 3:
-#ifdef WORDS_BIGENDIAN
-			if( flags == LPCM_LTE_ENDIAN )
-#else
-			if( flags == LPCM_BIG_ENDIAN )
-#endif
-			{
-				n *= 3 ;
-				for( i=0; i<n; i += 3 )
-				{
-					x = fubytes[i] ;
-					y = fubytes[i+1] ;
-					z = fubytes[i+2] ;
+	uint8_t x, y, z;
 
-					ubytes[i]   = z ;
-					ubytes[i+1] = y ;
-					ubytes[i+2] = x ;
-				}
-				n /= 3 ;
+	switch (segmentSize) {
+	case 2:
+		if (flags == NOT_HOST_ENDIAN) {
+			for (i = 0; i < n; ++i)
+				words[i] = ARRANGE_ENDIAN_16(fwords[i]);
+		} else {
+			memmove(words, fwords, n << 1 /* n * 2 */);
+		}
+		break;
+	case 3:
+		if (flags == NOT_HOST_ENDIAN) {
+			n *= 3;
+			for (i = 0; i < n; i += 3) {
+				x = fubytes[i];
+				y = fubytes[i + 1];
+				z = fubytes[i + 2];
+
+				ubytes[i] = z;
+				ubytes[i + 1] = y;
+				ubytes[i + 2] = x;
 			}
-			break ;
-		case 4:
-			switch( flags )
-			{
-#ifndef WORDS_BIGENDIAN
-				case LPCM_BIG_ENDIAN:
-					for( i=0; i<n; ++i )
-						dwords[i] = ARRANGE_BE32( fdwords[i] ) ;
-					break ;
-#else
-				case LPCM_LTE_ENDIAN:
-					for( i=0; i<n; ++i )
-						dwords[i] = ARRANGE_LE32( fdwords[i] ) ;
-					break ;
-#endif
-			}
-			break ;
+			n /= 3;
+		} else {
+			memmove(ubytes, fubytes, n * 3);
+		}
+		break;
+	case 4:
+		if (flags == NOT_HOST_ENDIAN) {
+			for (i = 0; i < n; ++i)
+				dwords[i] = ARRANGE_ENDIAN_32(fdwords[i]);
+		} else {
+			memmove(dwords, fdwords, n << 2 /* n * 4 */);
+		}
+		break;
 	}
 
 	return;
 }
 
-size_t do_lpcm(AIFF_ReadRef r,void* buffer,size_t len)
+size_t 
+do_lpcm(AIFF_ReadRef r, void *buffer, size_t len)
 {
 	int n;
-	uint32_t clen ;
-	size_t slen ;
-	size_t bytes_in ;
-	size_t bytesToRead ;
+	uint32_t clen;
+	size_t slen;
+	size_t bytes_in;
+	size_t bytesToRead;
 
-	n = (int)len ;
-	while( n >= 0 && n % r->segmentSize != 0 )
-	{
-		--n ;
-		--len ;
+	n = (int) len;
+	while (n >= 0 && n % r->segmentSize != 0) {
+		--n;
+		--len;
 	}
-	n /= r->segmentSize ;
-	
-	slen = (size_t)(r->soundLen - r->pos) ;
-	bytesToRead = ( slen > len ? len : slen ) ;
+	n /= r->segmentSize;
 
-	if( bytesToRead == 0 )
-		return 0 ;
-	
-	bytes_in = fread( buffer, 1, bytesToRead , r->fd ) ;
-	if( bytes_in > 0 )
-		clen = (uint32_t)bytes_in ;
+	slen = (size_t) (r->soundLen - r->pos);
+	bytesToRead = (slen > len ? len : slen);
+
+	if (bytesToRead == 0)
+		return 0;
+
+	bytes_in = fread(buffer, 1, bytesToRead, r->fd);
+	if (bytes_in > 0)
+		clen = (uint32_t) bytes_in;
 	else
-		clen = 0 ;
-	r->pos += clen ;
+		clen = 0;
+	r->pos += clen;
 
-	lpcm_swap_samples( r->segmentSize, r->flags, buffer, buffer, n );
+	lpcm_swap_samples(r->segmentSize, r->flags, buffer, buffer, n);
 
-	return bytes_in ;
+	return bytes_in;
 }
 
-int lpcm_seek(AIFF_ReadRef r,uint32_t pos)
+int 
+lpcm_seek(AIFF_ReadRef r, uint32_t pos)
 {
-	long of ;
-	uint32_t b ;
+	long of;
+	uint32_t b;
 
-	b = pos * r->nChannels * r->segmentSize ;
-	if( b >= r->soundLen )
-		return 0 ;
-	of = (long)b ;
+	b = pos * r->nChannels * r->segmentSize;
+	if (b >= r->soundLen)
+		return 0;
+	of = (long) b;
 
-	if( fseek( r->fd,of,SEEK_CUR ) < 0 )
-	{
-		return -1 ;
+	if (fseek(r->fd, of, SEEK_CUR) < 0) {
+		return -1;
 	}
-
-	r->pos = b ;
-	return 1 ;
+	r->pos = b;
+	return 1;
 }
-
