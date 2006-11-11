@@ -12,10 +12,10 @@ all: libaiff.a
 
 install: libaiff.a
 	cp libaiff.a $(prefix)/lib
-	chmod 0644 $(prefix)/lib/libaiff.a
+	chmod 0444 $(prefix)/lib/libaiff.a
 	cp -R ./libaiff $(prefix)/include/libaiff
 	chmod 0755 $(prefix)/include/libaiff
-	chmod 0644 $(prefix)/include/libaiff/*
+	chmod 0444 $(prefix)/include/libaiff/*
 	rm -f $(prefix)/include/libaiff/config.h.in
 
 uninstall: deinstall
