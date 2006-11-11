@@ -91,7 +91,7 @@ ieee754_write_extended(double in, unsigned char *out)
 	fraction = frexp(in, &exp);
 
 	if (exp == 0 || exp > 16384) {
-		if (exp > 16384 || fraction == INFINITE_VALUE)
+		if (exp > 16384) /* infinite value */
 			low = high = 0;
 		else {
 			low = 0x80000000;
@@ -107,7 +107,7 @@ ieee754_write_extended(double in, unsigned char *out)
 	t = floor(ldexp(fraction, 32));
 	high = (uint32_t) t;
 
-	/* Convert exponents lesser than -16382 to -16382 (then they will be
+	/* Convert exponents < -16382 to -16382 (then they will be
 	 * stored as -16383) */
 	if (exp < -16382) {
 		shift = 0 - exp - 16382;
