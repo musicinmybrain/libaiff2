@@ -1,4 +1,5 @@
-# Makefile for libaiff 2.0
+# $Id$
+# Makefile for libaiff
 CC = @CC@
 RANLIB = @RANLIB@
 AR = ar
@@ -24,6 +25,7 @@ deinstall:
 	rm -rf $(prefix)/include/libaiff
 
 libaiff.a: $(objs)
+	@echo "#	creating $@"
 	$(AR) cru $@ $(objs)
 	$(RANLIB) $@
 
@@ -35,10 +37,8 @@ cleanconfig:
 
 cleanall: clean cleanconfig
 
-iff.o: iff.c
-aifx.o: aifx.c
-lpcm.o: lpcm.c
-libaiff.o: libaiff.c
-extended.o: extended.c
-memcmp.o: memcmp.c
+.c.o:
+	@echo "#	compiling $@"
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
