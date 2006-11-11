@@ -46,31 +46,35 @@
 int 
 find_iff_chunk(IFFType chunk, FILE * fd, uint32_t * length)
 {
-	uint8_t temp[8];
+	union cio {
+		uint8_t buf[8];
+		IFFChunk chk;
+	} d;
+	
+	ASSERT(sizeof(IFFChunk) == 8);
+	chunk = ARRANGE_BE32(chunk);
 
 	if (fseek(fd, 12, SEEK_SET) == -1) {
 		return 0;
 	}
 	for (;;) {
-		if (fread(temp, 1, 8, fd) < 8)
+		if (fread(d.buf, 1, 8, fd) < 8)
 			return 0;
-
-		memcpy(length, temp + 4, 4);
-
-		*length = ARRANGE_BE32(*length);
-
-		if (rpl_memcmp(&chunk, temp, 4) != 0) {
+		
+		d.chk.len = ARRANGE_BE32(d.chk.len);
+		if (d.chk.id != chunk) {
 			/*
 			 * In Electronic Arts IFF files (like AIFF)
 			 * chunk start positions must be even.
 			 */
-			if (*length & 0x1)	/* if( *length % 2 != 0 ) */
-				++(*length);
+			if (d.chk.len & 1)	/* if( *length % 2 != 0 ) */
+				++(d.chk.len);
 
-			if (fseek(fd, (long) (*length), SEEK_CUR) == -1) {
+			if (fseek(fd, (long) d.chk.len, SEEK_CUR) == -1) {
 				return 0;
 			}
 		} else {
+			*(length) = d.chk.len;
 			break;
 		}
 
@@ -82,23 +86,9 @@ find_iff_chunk(IFFType chunk, FILE * fd, uint32_t * length)
 char *
 get_iff_attribute(AIFF_ReadRef r, IFFType attrib)
 {
-	int n = 4;
-	IFFType *sattrib;
-	char *attributes[4] = {NameID, AuthID, AnnoID, CopyID};
 	char *str;
 	uint32_t len;
-
-	/*
-	 * Check if 'attrib' is a valid IFF attribute
-	 */
-	while (n--) {
-		sattrib = (IFFType *) attributes[n];
-		if (attrib == *sattrib)
-			break;
-		if (n == 0)
-			return NULL;
-	}
-
+	
 	if (!find_iff_chunk(attrib, r->fd, &len))
 		return NULL;
 
@@ -122,25 +112,12 @@ get_iff_attribute(AIFF_ReadRef r, IFFType attrib)
 int 
 set_iff_attribute(AIFF_WriteRef w, IFFType attrib, char *str)
 {
-	int n = 4;
-	IFFType *sattrib;
-	char *attributes[4] = {NameID, AuthID, AnnoID, CopyID};
-	char car = 0;
+	uint8_t car = 0x0;
 	IFFChunk chk;
 	uint32_t len = strlen(str);
-
-	/*
-	 * Check if 'attrib' is a valid IFF attribute
-	 */
-	while (n--) {
-		sattrib = (IFFType *) attributes[n];
-		if (attrib == *sattrib)
-			break;
-		if (n == 0)
-			return 0;
-	}
-
-	memcpy(&(chk.id), &attrib, 4);
+	
+	ASSERT(sizeof(IFFChunk) == 8);
+	chk.id = ARRANGE_BE32(attrib);
 	chk.len = ARRANGE_BE32(len);
 
 	if (fwrite(&chk, 1, 8, w->fd) < 8 ||
@@ -151,7 +128,7 @@ set_iff_attribute(AIFF_WriteRef w, IFFType attrib, char *str)
 	 * Write a pad byte if chunk length is odd,
 	 * as required by the IFF specification.
 	 */
-	if (len & 0x1) {
+	if (len & 1) {
 		if (fwrite(&car, 1, 1, w->fd) < 1) {
 			return -1;
 		}

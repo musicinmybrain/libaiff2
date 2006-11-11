@@ -31,7 +31,7 @@
  */
 
 #ifndef _LIBAIFF_H_
-#define _LIBAIFF_H_
+#define _LIBAIFF_H_ 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,12 +93,12 @@ typedef struct s_AIFF_ReadRef* AIFF_ReadRef ;
 /* 
  * == Interchange File Format (IFF) ==
  */
-extern char FormID[];
-extern char AiffID[];
-extern char NameID[];
-extern char AuthID[];
-extern char CopyID[];
-extern char AnnoID[];
+#define AIFF_FORM		0x464f524d
+#define AIFF_AIFF		0x41494646
+#define AIFF_NAME		0x4e414d45
+#define AIFF_AUTH		0x41555448
+#define AIFF_COPY		0x28632920
+#define AIFF_ANNO		0x414e4e4f
 
 struct s_IFFHeader
 {
@@ -114,16 +114,6 @@ struct s_IFFChunk
 	uint32_t len ;
 } ;
 typedef struct s_IFFChunk IFFChunk ;
-
-/*
- * == Audio Interchange File Format (AIFF) ==
- */
-extern char FverID[];
-extern char CommonID[];
-extern char SoundID[];
-extern char MarkerID[];
-extern char InstrumentID[];
-extern char CommentID[];
 
 struct s_AIFFCommon
 {

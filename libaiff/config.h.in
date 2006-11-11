@@ -1,5 +1,8 @@
 /* libaiff/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have the `abort' function. */
+#undef HAVE_ABORT
+
 /* Define to 1 if you have the `bzero' function. */
 #undef HAVE_BZERO
 

@@ -13,12 +13,13 @@
 
 #endif
 
-/*
- * Provide a custom memcmp function
- * It is only used on `iff.c' to compare
- * a few bytes, after all.
- */
-int rpl_memcmp (const void*, const void*, size_t);
+#ifdef ASSERT
+#undef ASSERT
+#endif
+
+void AIFFAssertionFailed (const char*, int);
+
+#define ASSERT(x) if(!(x)) AIFFAssertionFailed(__FILE__, __LINE__)
 
 /* == Supported formats == */
 
@@ -36,6 +37,14 @@ int rpl_memcmp (const void*, const void*, size_t);
 #define AUDIO_FORMAT_ulaw  ARRANGE_BE32(0x756C6177)
 #define AUDIO_FORMAT_ALAW  ARRANGE_BE32(0x414C4157)
 #define AUDIO_FORMAT_alaw  ARRANGE_BE32(0x616C6177)
+
+/* Chunks */
+#define AIFF_FVER 0x46564552
+#define AIFF_COMM 0x434f4d4d
+#define AIFF_SSND 0x53534e44
+#define AIFF_MARK 0x4d41524b
+#define AIFF_INST 0x494e5354
+#define AIFF_COMT 0x434f4d54
 
 /* Flags for LPCM format */
 #define LPCM_BIG_ENDIAN   (1<<0)

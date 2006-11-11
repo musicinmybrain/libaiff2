@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT([libaiff], [2.0], [marcotrillo@gmail.com])
+AC_INIT([libaiff], [2.99], [marcotrillo@gmail.com])
 AC_CONFIG_HEADERS([libaiff/config.h])
 AC_CONFIG_SRCDIR([./libaiff.c])
 
@@ -19,7 +19,7 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([sys/types.h strings.h string.h])
 
 # Checks for library functions.
-AC_CHECK_FUNCS([memset bzero])
+AC_CHECK_FUNCS([memset bzero abort])
 
 AC_TYPE_SIZE_T
 AC_TYPE_INT8_T

@@ -42,8 +42,6 @@
 #include <sys/types.h>
 #endif
 
-#include "defs.h"
-
 /* == Public functions == */
 
 AIFF_ReadRef 
@@ -360,10 +358,10 @@ AIFF_WriteOpen(const char *file)
 	if (w->fd == NULL) {
 		return NULL;
 	}
-	memcpy(&(hdr.hid), FormID, 4);
+	hdr.hid = ARRANGE_BE32(AIFF_FORM);
 	w->len = 4;
 	hdr.len = ARRANGE_BE32(w->len);
-	memcpy(&(hdr.fid), AiffID, 4);
+	hdr.fid = ARRANGE_BE32(AIFF_AIFF);
 
 	if (fwrite(&hdr, 1, 12, w->fd) < 12) {
 		fclose(w->fd);
@@ -396,7 +394,7 @@ AIFF_SetSoundFormat(AIFF_WriteRef w, int channels, int samplingRate,
 	if (w->stat != 0)
 		return 0;
 
-	memcpy(&(chk.id), CommonID, 4);
+	chk.id = ARRANGE_BE32(AIFF_COMM);
 	chk.len = ARRANGE_BE32(18);
 
 	if (fwrite(&chk, 1, 8, w->fd) < 8) {
@@ -446,7 +444,7 @@ AIFF_StartWritingSamples(AIFF_WriteRef w)
 	if (w->stat != 1)
 		return 0;
 
-	memcpy(&(chk.id), SoundID, 4);
+	chk.id = ARRANGE_BE32(AIFF_SSND);
 	chk.len = ARRANGE_BE32(8);
 
 	if (fwrite(&chk, 1, 8, w->fd) < 8) {
@@ -671,8 +669,7 @@ AIFF_EndWritingSamples(AIFF_WriteRef w)
 	if (fread(&chk, 1, 8, w->fd) < 8) {
 		return -1;
 	}
-	memcpy(&typ, SoundID, 4);
-	if (chk.id != typ) {
+	if (chk.id != ARRANGE_BE32(AIFF_SSND)) {
 		return -1;
 	}
 	len = ARRANGE_BE32(chk.len);
@@ -692,8 +689,8 @@ AIFF_EndWritingSamples(AIFF_WriteRef w)
 	if (fread(&chk, 1, 8, w->fd) < 8) {
 		return -1;
 	}
-	memcpy(&typ, CommonID, 4);
-	if (chk.id != typ) {
+	
+	if (chk.id != ARRANGE_BE32(AIFF_COMM)) {
 		return -1;
 	}
 	if (fread(&(c.numChannels), 1, 2, w->fd) < 2
@@ -739,7 +736,7 @@ AIFF_StartWritingMarkers(AIFF_WriteRef w)
 	if (w->stat != 3)
 		return -1;
 
-	memcpy(&(chk.id), MarkerID, 4);
+	chk.id = ARRANGE_BE32(AIFF_MARK);
 	chk.len = ARRANGE_BE16(2);
 
 	if (fwrite(&chk, 1, 8, w->fd) < 8)
@@ -831,8 +828,7 @@ AIFF_EndWritingMarkers(AIFF_WriteRef w)
 	if (fread(&ckid, 1, 4, w->fd) < 4)
 		return -1;
 
-	memcpy(&typ, MarkerID, 4);
-	if (ckid != typ) {
+	if (ckid != ARRANGE_BE32(AIFF_MARK)) {
 		return -1;
 	}
 	nMarkers = (uint16_t) (w->markerPos);
@@ -875,8 +871,7 @@ AIFF_WriteClose(AIFF_WriteRef w)
 		free(w);
 		return -1;
 	}
-	memcpy(&typ, FormID, 4);
-	if (hdr.hid != typ) {
+	if (hdr.hid != ARRANGE_BE32(AIFF_FORM)) {
 		fclose(w->fd);
 		free(w);
 		return -1;
@@ -899,3 +894,27 @@ AIFF_WriteClose(AIFF_WriteRef w)
 	free(w);
 	return ret;
 }
+
+
+/* assertion failed */
+void
+AIFFAssertionFailed (const char * fil, int lin)
+{
+	
+	fprintf(stderr, "%s: assertion at %s:%d failed\n",
+			PACKAGE_STRING,
+			(char *) fil,
+			lin
+			);
+	fprintf(stderr, "%s: please report this bug at <%s>\n",
+			PACKAGE_STRING,
+			PACKAGE_BUGREPORT
+			);
+	
+#ifdef HAVE_ABORT
+	abort();
+#else
+	/* XXX */
+#endif
+}
+

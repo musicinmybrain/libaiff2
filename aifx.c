@@ -53,11 +53,9 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 	double sRate;
 	unsigned char buffer[10];
 	uint32_t len;
-	IFFType typ;
 	CommonChunk p;
 
-	memcpy(&typ, CommonID, 4);
-	if (!find_iff_chunk(typ, r->fd, &len))
+	if (!find_iff_chunk(AIFF_COMM, r->fd, &len))
 		return -1;
 
 	if (len < 18)
@@ -125,7 +123,6 @@ int
 read_aifx_marker(AIFF_ReadRef r, int *id, uint32_t * position, char **name)
 {
 	uint16_t nMarkers;
-	IFFType typ;
 	uint32_t cklen;
 	int n;
 	size_t z;
@@ -133,8 +130,7 @@ read_aifx_marker(AIFF_ReadRef r, int *id, uint32_t * position, char **name)
 	Marker m;
 
 	if (r->stat != 4) {
-		memcpy(&typ, MarkerID, 4);
-		if (!find_iff_chunk(typ, r->fd, &cklen))
+		if (!find_iff_chunk(AIFF_MARK, r->fd, &cklen))
 			return 0;
 		if (cklen < 2)
 			return -1;
@@ -193,7 +189,6 @@ int
 get_aifx_instrument(AIFF_ReadRef r, Instrument * inpi)
 {
 	int i;
-	IFFType typ;
 	uint32_t cklen;
 	int8_t buffer[6];
 	int16_t gain;
@@ -206,8 +201,7 @@ get_aifx_instrument(AIFF_ReadRef r, Instrument * inpi)
 
 	r->stat = 0;
 
-	memcpy(&typ, InstrumentID, 4);
-	if (!find_iff_chunk(typ, r->fd, &cklen))
+	if (!find_iff_chunk(AIFF_INST, r->fd, &cklen))
 		return 0;
 	if (cklen != 20)
 		return 0;
@@ -262,13 +256,11 @@ get_aifx_instrument(AIFF_ReadRef r, Instrument * inpi)
 int 
 do_aifx_prepare(AIFF_ReadRef r)
 {
-	IFFType typ;
 	uint32_t clen;
 	SoundChunk s;
 	long of;
 
-	memcpy(&typ, SoundID, 4);
-	if (!find_iff_chunk(typ, r->fd, &clen))
+	if (!find_iff_chunk(AIFF_SSND, r->fd, &clen))
 		return -1;
 	if (clen < 8)
 		return -1;
