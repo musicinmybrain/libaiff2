@@ -796,8 +796,8 @@ AIFF_WriteMarker(AIFF_WriteRef w, uint32_t position, char *name)
 	w->len += 8;
 	if (l && !pad)
 		--l;
-	if (l) {
-		if (fwrite(name + 1, 1, l, w->fd) < l) {
+	if (l > 0) {
+		if (fwrite(name + 1, 1, l, w->fd) < (size_t) l) {
 			return -1;
 		}
 		w->len += (uint32_t) l;
