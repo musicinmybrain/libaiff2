@@ -642,7 +642,6 @@ AIFF_EndWritingSamples(AIFF_WriteRef w)
 	char car = 0;
 	uint32_t segment;
 	long of;
-	IFFType typ;
 	IFFChunk chk;
 	CommonChunk c;
 	uint32_t len;
@@ -806,7 +805,6 @@ AIFF_WriteMarker(AIFF_WriteRef w, uint32_t position, char *name)
 int 
 AIFF_EndWritingMarkers(AIFF_WriteRef w)
 {
-	IFFType typ;
 	IFFType ckid;
 	uint32_t cklen;
 	uint32_t curpos;
@@ -855,7 +853,6 @@ int
 AIFF_WriteClose(AIFF_WriteRef w)
 {
 	int ret = 1;
-	IFFType typ;
 	IFFHeader hdr;
 
 	if (w->stat != 3) {
