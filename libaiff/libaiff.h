@@ -91,10 +91,8 @@ typedef struct s_AIFF_WriteRef* AIFF_WriteRef ;
 typedef struct s_AIFF_ReadRef* AIFF_ReadRef ;
 
 /* 
- * == Interchange File Format (IFF) ==
+ * == Interchange File Format (IFF) attributes ==
  */
-#define AIFF_FORM		0x464f524d
-#define AIFF_AIFF		0x41494646
 #define AIFF_NAME		0x4e414d45
 #define AIFF_AUTH		0x41555448
 #define AIFF_COPY		0x28632920
