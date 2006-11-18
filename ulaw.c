@@ -90,7 +90,8 @@ do_ulaw (AIFF_ReadRef r, void *buffer, size_t len)
 		return 0;
 	
 	if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
-		free(r->buffer2);
+		if (r->buffer2 != NULL)
+			free(r->buffer2);
 		r->buffer2 = malloc(bytesToRead);
 		if (r->buffer2 == NULL) {
 			r->buflen2 = 0;
