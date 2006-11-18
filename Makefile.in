@@ -7,7 +7,7 @@ CFLAGS = @DEFS@ -I. -Ilibaiff -ansi -pedantic -Wall -Wextra -Wfloat-equal -Wshad
 
 prefix = @prefix@
 
-objs = iff.o aifx.o lpcm.o ulaw.o libaiff.o extended.o
+objs = iff.o aifx.o lpcm.o ulaw.o alaw.o libaiff.o extended.o
 
 all: libaiff.a
 
