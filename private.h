@@ -42,6 +42,7 @@ void AIFFAssertionFailed (const char*, int);
 #define AUDIO_FORMAT_ulaw  ARRANGE_BE32(0x756C6177)
 #define AUDIO_FORMAT_ALAW  ARRANGE_BE32(0x414C4157)
 #define AUDIO_FORMAT_alaw  ARRANGE_BE32(0x616C6177)
+#define AUDIO_FORMAT_UNKNOWN 0xFFFFFFFF
 
 /* OSTypes */
 #define AIFF_FORM 0x464f524d

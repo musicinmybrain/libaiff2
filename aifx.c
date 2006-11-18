@@ -54,6 +54,7 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 	unsigned char buffer[10];
 	uint32_t len;
 	CommonChunk p;
+	IFFType aFmt;
 
 	if (!find_iff_chunk(AIFF_COMM, r->fd, &len))
 		return -1;
@@ -89,36 +90,39 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 		*segmentSize = wSegmentSize;
 	}
 	if (len >= 22 && r->format == AIFF_TYPE_AIFC) {
-		if (audioFormat) {
-			if (fread(audioFormat, 1, 4, r->fd) < 4)
-				return -1;
-			switch (*audioFormat) {
-			case AUDIO_FORMAT_LPCM:	/* 'NONE' */
-			case AUDIO_FORMAT_lpcm:	/* 'lpcm' (not standard) */
-			case AUDIO_FORMAT_twos:	/* 'twos' */
-				*audioFormat = AUDIO_FORMAT_LPCM;
-				if (flags)
-					*flags = LPCM_BIG_ENDIAN;
-				break;
+		if (fread(&aFmt, 1, 4, r->fd) < 4)
+			return -1;
+		switch (aFmt) {
+		case AUDIO_FORMAT_LPCM:	/* 'NONE' */
+		case AUDIO_FORMAT_lpcm:	/* 'lpcm' (not standard) */
+		case AUDIO_FORMAT_twos:	/* 'twos' */
+			aFmt = AUDIO_FORMAT_LPCM;
+			if (flags)
+				*flags = LPCM_BIG_ENDIAN;
+			break;
+			
+		case AUDIO_FORMAT_ULAW: /* 'ULAW' */
+		case AUDIO_FORMAT_ulaw: /* 'ulaw' */
+			aFmt = AUDIO_FORMAT_ULAW;
+			if (segmentSize)
+				*segmentSize = 2;
+			if (bitsPerSample)
+				*bitsPerSample = 14;
+			if (flags)
+				*flags = 0;
+			break;
+			
+		case AUDIO_FORMAT_sowt:	/* 'sowt' */
+			aFmt = AUDIO_FORMAT_LPCM;
+			if (flags)
+				*flags = LPCM_LTE_ENDIAN;
+			break;
 				
-			case AUDIO_FORMAT_ULAW: /* 'ULAW' */
-			case AUDIO_FORMAT_ulaw: /* 'ulaw' */
-				*audioFormat = AUDIO_FORMAT_ULAW;
-				if (segmentSize)
-					*segmentSize = 2;
-				if (bitsPerSample)
-					*bitsPerSample = 14;
-				if (flags)
-					*flags = 0;
-				break;
-				
-			case AUDIO_FORMAT_sowt:	/* 'sowt' */
-				*audioFormat = AUDIO_FORMAT_LPCM;
-				if (flags)
-					*flags = LPCM_LTE_ENDIAN;
-				break;
-			}
+		default:
+			aFmt = AUDIO_FORMAT_UNKNOWN;
 		}
+		if (audioFormat)
+			*audioFormat = aFmt;
 	} else {
 		if (audioFormat)
 			*audioFormat = AUDIO_FORMAT_LPCM;
