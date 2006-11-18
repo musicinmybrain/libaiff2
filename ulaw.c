@@ -55,11 +55,11 @@ ulawdec (uint8_t x)
 	int y;
 	
 	x = ~x; /* bits are sent reversed */
-	sgn = x & 0x80; /* sign */
+	sgn = x & 0x80;
 	x &= 0x7F;
 	mant = (int) ((x & 0xF) << 1) | 0x21; /* mantissa plus hidden bits */
 	exp = (int) ((x & 0x70) >> 4); /* exponent */
-	mant <<= exp; /* raise mantissa to 2^exponent */
+	mant <<= exp;
 	
 	/*
 	 * Subtract 33 from the 'raised output'
