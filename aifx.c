@@ -107,7 +107,7 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 				if (segmentSize)
 					*segmentSize = 2;
 				if (bitsPerSample)
-					*bitsPerSample = 16;
+					*bitsPerSample = 14;
 				if (flags)
 					*flags = 0;
 				break;
