@@ -804,6 +804,13 @@ AIFF_WriteMarker(AIFF_WriteRef w, uint32_t position, char *name)
 		return -1;
 	}
 	w->len += 8;
+	
+	/*
+	 * Write the remaining of the string.
+	 * If we have to pad, do not decrement the number of 
+	 * bytes to be written so we'll write the terminating NUL too
+	 * which will serve as a 'pad byte'.
+	 */
 	if (l && !pad)
 		--l;
 	if (l > 0) {
