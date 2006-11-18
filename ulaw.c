@@ -41,7 +41,7 @@
  * of 14-bit PCM samples, with a 4-bit mantissa and a 3-bit
  * exponent.
  * 
- * This gives a full 4-bit binary fraction for all samples,
+ * This gives 5-bit (4 + hidden bit) mantissa precision for all samples,
  * so low samples (with zeros in the most-significant bits) get
  * more precision with this encoding than with normal 8-bit LPCM.
  */
