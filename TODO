@@ -19,8 +19,10 @@ To-do-list:
         * Beta-testing on AIFC files.
 
 	* Implementing some compression formats for AIFC
-	  files, like u-Law, a-Law, etc.
-		[!] As of version 2.99, some u-Law support is 
+	  files, like a-Law, etc.
+		[*] u-Law implemented as of 2.99.
+		    Needs more testing.
+		[!] As of version 2.99, some A-Law support is 
 		    present but is not tested yet.
 
 Any comments? Want to help with this project?

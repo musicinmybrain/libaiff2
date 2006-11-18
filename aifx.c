@@ -111,6 +111,17 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 			if (flags)
 				*flags = 0;
 			break;
+		
+		case AUDIO_FORMAT_ALAW: /* 'ALAW' */
+		case AUDIO_FORMAT_alaw: /* 'alaw' */
+			aFmt = AUDIO_FORMAT_ALAW;
+			if (segmentSize)
+				*segmentSize = 2;
+			if (bitsPerSample)
+				*bitsPerSample = 13;
+			if (flags)
+				*flags = 0;
+			break;
 			
 		case AUDIO_FORMAT_sowt:	/* 'sowt' */
 			aFmt = AUDIO_FORMAT_LPCM;

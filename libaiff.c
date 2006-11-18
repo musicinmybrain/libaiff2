@@ -193,8 +193,12 @@ AIFF_ReadSamples(AIFF_ReadRef r, void *buffer, size_t len)
 	case AUDIO_FORMAT_lpcm:
 	case AUDIO_FORMAT_LPCM:
 		return do_lpcm(r, buffer, len);
+		
 	case AUDIO_FORMAT_ULAW:
 		return do_ulaw(r, buffer, len);
+		
+	case AUDIO_FORMAT_ALAW:
+		return do_alaw(r, buffer, len);
 	default:
 		return 0;
 	}
@@ -222,8 +226,12 @@ AIFF_Seek(AIFF_ReadRef r, uint32_t pos)
 	case AUDIO_FORMAT_lpcm:
 	case AUDIO_FORMAT_LPCM:
 		return lpcm_seek(r, pos);
+		
 	case AUDIO_FORMAT_ULAW:
 		return ulaw_seek(r, pos);
+	
+	case AUDIO_FORMAT_ALAW:
+		return alaw_seek(r, pos);
 	default:
 		return 0;
 	}

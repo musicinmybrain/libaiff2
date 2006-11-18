@@ -82,6 +82,10 @@ int lpcm_seek(AIFF_ReadRef r,uint32_t pos) ;
 size_t do_ulaw(AIFF_ReadRef, void*, size_t) ;
 int ulaw_seek(AIFF_ReadRef, uint32_t) ;
 
+/* alaw.c */
+size_t do_alaw(AIFF_ReadRef, void*, size_t) ;
+int alaw_seek(AIFF_ReadRef, uint32_t) ;
+
 /* extended.c */
 void ieee754_write_extended (double, unsigned char*);
 double ieee754_read_extended (unsigned char*);
