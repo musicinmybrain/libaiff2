@@ -44,6 +44,9 @@
  * This gives 5-bit (4 + hidden bit) mantissa precision for all samples,
  * so low samples (with zeros in the most-significant bits) get
  * more precision with this encoding than with normal 8-bit LPCM.
+ * 
+ * For more information on u-Law:
+ *   http://shannon.cm.nctu.edu.tw/comtheory/chap3.pdf
  */
 static int16_t
 ulawdec (uint8_t x)
