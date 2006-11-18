@@ -13,6 +13,11 @@
 
 #endif
 
+#ifdef MIN
+#undef MIN
+#endif
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
 #ifdef ASSERT
 #undef ASSERT
 #endif
@@ -71,6 +76,10 @@ int do_aifx_prepare(AIFF_ReadRef r) ;
 void lpcm_swap_samples(int,int,void*,void*,int) ;
 size_t do_lpcm(AIFF_ReadRef r,void* buffer,size_t len) ;
 int lpcm_seek(AIFF_ReadRef r,uint32_t pos) ;
+
+/* ulaw.c */
+size_t do_ulaw(AIFF_ReadRef, void*, size_t) ;
+int ulaw_seek(AIFF_ReadRef, uint32_t) ;
 
 /* extended.c */
 void ieee754_write_extended (double, unsigned char*);

@@ -100,6 +100,18 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 				if (flags)
 					*flags = LPCM_BIG_ENDIAN;
 				break;
+				
+			case AUDIO_FORMAT_ULAW: /* 'ULAW' */
+			case AUDIO_FORMAT_ulaw: /* 'ulaw' */
+				*audioFormat = AUDIO_FORMAT_ULAW;
+				if (segmentSize)
+					*segmentSize = 2;
+				if (bitsPerSample)
+					*bitsPerSample = 16;
+				if (flags)
+					*flags = 0;
+				break;
+				
 			case AUDIO_FORMAT_sowt:	/* 'sowt' */
 				*audioFormat = AUDIO_FORMAT_LPCM;
 				if (flags)

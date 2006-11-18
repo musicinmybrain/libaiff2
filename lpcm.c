@@ -125,7 +125,7 @@ do_lpcm(AIFF_ReadRef r, void *buffer, size_t len)
 	n /= r->segmentSize;
 
 	slen = (size_t) (r->soundLen - r->pos);
-	bytesToRead = (slen > len ? len : slen);
+	bytesToRead = MIN(len, slen);
 
 	if (bytesToRead == 0)
 		return 0;

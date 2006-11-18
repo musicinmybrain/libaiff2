@@ -84,6 +84,8 @@ struct s_AIFF_ReadRef {
 	int stat ;
 	void* buffer ;
 	size_t buflen ;
+	void* buffer2 ;
+	size_t buflen2 ;
 } ;
 static const size_t kAiffWriteRefSize = sizeof(struct s_AIFF_WriteRef) ;
 static const size_t kAiffReadRefSize = sizeof(struct s_AIFF_ReadRef) ;
