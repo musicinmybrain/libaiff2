@@ -51,7 +51,7 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 	int bps;
 	int wSegmentSize;
 	double sRate;
-	unsigned char buffer[10];
+	uint8_t buffer[10];
 	uint32_t len;
 	CommonChunk p;
 	IFFType aFmt;

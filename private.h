@@ -87,7 +87,7 @@ size_t do_alaw(AIFF_ReadRef, void*, size_t) ;
 int alaw_seek(AIFF_ReadRef, uint32_t) ;
 
 /* extended.c */
-void ieee754_write_extended (double, unsigned char*);
-double ieee754_read_extended (unsigned char*);
+void ieee754_write_extended (double, uint8_t*);
+double ieee754_read_extended (uint8_t*);
 
 

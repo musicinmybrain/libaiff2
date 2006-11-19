@@ -37,9 +37,10 @@
 #include <string.h>
 
 
-/* Infinite & NAN values
-* for non-IEEE systems
-*/
+/*
+ * Infinite & NAN values
+ * for non-IEEE systems
+ */
 #ifndef HUGE_VAL
 #ifdef HUGE
 #define INFINITE_VALUE	HUGE
@@ -52,29 +53,29 @@
 
 
 /*
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * IEEE Extended Precision
- *
- * Implementation here is Motorola 680x0 / Intel 80x87 80-bit
- * "extended" data type.
- *
+ * IEEE 754 Extended Precision
+ * 
+ * Implementation here is the 80-bit extended precision
+ * format of Motorola 68881, Motorola 68882 and Motorola
+ * 68040 FPUs, as well as Intel 80x87 FPUs.
+ * 
+ * See:
+ *    http://www.freescale.com/files/32bit/doc/fact_sheet/BR509.pdf
+ */
+/*
  * Exponent range: [-16383,16383]
- * Precision for mantissa: 64-bits with no hidden bit
+ * Precision for mantissa: 64 bits with no hidden bit
  * Bias: 16383
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
 
 /*
  * Write IEEE Extended Precision Numbers
  */
 void
-ieee754_write_extended(double in, unsigned char *out)
+ieee754_write_extended(double in, uint8_t* out)
 {
-	int sgn;
-	int exp;
-	int shift;
-	double fraction;
-	double t;
+	int sgn, exp, shift;
+	double fraction, t;
 	unsigned int lexp, hexp;
 	uint32_t low, high;
 
@@ -121,77 +122,43 @@ ieee754_write_extended(double in, unsigned char *out)
 done:
 	lexp = ((unsigned int) exp) >> 8;
 	hexp = ((unsigned int) exp) & 0xFF;
-
-#if 0
-	if (flags & IEEE754_ENDIAN_XINU) {
-		out[9] = ((unsigned char) sgn) << 7;
-		out[9] |= (unsigned char) lexp;
-		out[8] = hexp;
-		out[7] = low >> 24;
-		out[6] = (low >> 16) & 0xFF;
-		out[5] = (low >> 8) & 0xFF;
-		out[4] = low & 0xFF;
-		out[3] = high >> 24;
-		out[2] = (high >> 16) & 0xFF;
-		out[1] = (high >> 8) & 0xFF;
-		out[0] = high & 0xFF;
-	} else {
-#endif
-
-		out[0] = ((unsigned char) sgn) << 7;
-		out[0] |= (unsigned char) lexp;
-		out[1] = hexp;
-		out[2] = low >> 24;
-		out[3] = (low >> 16) & 0xFF;
-		out[4] = (low >> 8) & 0xFF;
-		out[5] = low & 0xFF;
-		out[6] = high >> 24;
-		out[7] = (high >> 16) & 0xFF;
-		out[8] = (high >> 8) & 0xFF;
-		out[9] = high & 0xFF;
-
-#if 0
-	}
-#endif
+	
+	/* big endian */
+	out[0] = ((uint8_t) sgn) << 7;
+	out[0] |= (uint8_t) lexp;
+	out[1] = (uint8_t) hexp;
+	out[2] = (uint8_t) (low >> 24);
+	out[3] = (uint8_t) ((low >> 16) & 0xFF);
+	out[4] = (uint8_t) ((low >> 8) & 0xFF);
+	out[5] = (uint8_t) (low & 0xFF);
+	out[6] = (uint8_t) (high >> 24);
+	out[7] = (uint8_t) ((high >> 16) & 0xFF);
+	out[8] = (uint8_t) ((high >> 8) & 0xFF);
+	out[9] = (uint8_t) (high & 0xFF);
 
 	return;
 }
+
+
 /*
  * Read IEEE Extended Precision Numbers
  */
 double
-ieee754_read_extended(unsigned char *in)
+ieee754_read_extended(uint8_t* in)
 {
-	int sgn;
-	int exp;
+	int sgn, exp;
 	uint32_t low, high;
 	double out;
 
-	/* Extract the components from the buffer */
-#if 0
-	if (flags & IEEE754_ENDIAN_XINU) {
-		sgn = (int) (in[9] >> 7);
-		exp = ((int) (in[9] & 0x7F) << 8) | ((int) in[8]);
-		low = (((uint32_t) in[7]) << 24)
-		    | (((uint32_t) in[6]) << 16)
-		    | (((uint32_t) in[5]) << 8) | (uint32_t) in[4];
-		high = (((uint32_t) in[3]) << 24)
-		    | (((uint32_t) in[2]) << 16)
-		    | (((uint32_t) in[1]) << 8) | (uint32_t) in[0];
-	} else {
-#endif
-
-		sgn = (int) (in[0] >> 7);
-		exp = ((int) (in[0] & 0x7F) << 8) | ((int) in[1]);
-		low = (((uint32_t) in[2]) << 24)
-		    | (((uint32_t) in[3]) << 16)
-		    | (((uint32_t) in[4]) << 8) | (uint32_t) in[5];
-		high = (((uint32_t) in[6]) << 24)
-		    | (((uint32_t) in[7]) << 16)
-		    | (((uint32_t) in[8]) << 8) | (uint32_t) in[9];
-#if 0
-	}
-#endif
+	/* Extract the components from the big endian buffer */
+	sgn = (int) (in[0] >> 7);
+	exp = ((int) (in[0] & 0x7F) << 8) | ((int) in[1]);
+	low = (((uint32_t) in[2]) << 24)
+		| (((uint32_t) in[3]) << 16)
+		| (((uint32_t) in[4]) << 8) | (uint32_t) in[5];
+	high = (((uint32_t) in[6]) << 24)
+		| (((uint32_t) in[7]) << 16)
+		| (((uint32_t) in[8]) << 8) | (uint32_t) in[9];
 
 	if (exp == 0 && low == 0 && high == 0)
 		return (sgn ? -0.0 : 0.0);

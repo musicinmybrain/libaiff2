@@ -401,7 +401,7 @@ AIFF_SetSoundFormat(AIFF_WriteRef w, int channels, int samplingRate,
     int bitsPerSample)
 {
 	double sRate;
-	unsigned char buffer[10];
+	uint8_t buffer[10];
 	CommonChunk c;
 	IFFChunk chk;
 
