@@ -1,6 +1,6 @@
 $Id$
 
-LibAiff 2.99
+LibAiff 3.99
 =====================================
 This is a beta version of LibAiff.
 It doesn`t support yet all the
@@ -19,11 +19,10 @@ To-do-list:
         * Beta-testing on AIFC files.
 
 	* Implementing some compression formats for AIFC
-	  files, like a-Law, etc.
 		[*] u-Law implemented as of 2.99.
 		    Needs more testing.
-		[!] As of version 2.99, some A-Law support is 
-		    present but is not tested yet.
+		[*] A-Law implemented as of 2.99.
+		    Needs more testing.
 
 Any comments? Want to help with this project?
 	+ Contact me on <marcotrillo@gmail.com>

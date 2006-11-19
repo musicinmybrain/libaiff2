@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT([libaiff], [2.99], [marcotrillo@gmail.com])
+AC_INIT([libaiff], [3.99], [marcotrillo@gmail.com])
 AC_CONFIG_HEADERS([libaiff/config.h])
 AC_CONFIG_SRCDIR([./libaiff.c])
 
