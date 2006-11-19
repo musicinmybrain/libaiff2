@@ -30,10 +30,18 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>LibAiff Reference Manual</title>
 <style type="text/css">
-h1,h2 { color: #F60; font-weight: bold; }
-a { color: #00E; text-decoration: underline; }
-a:hover { color: #917; }
-code { color: #02A; }
+body { font-family: serif; }
+pre { font-family: monospace; }
+h1 { font-size: 220%; }
+h2 { font-size: 160%; }
+h3 { color: #006; font-size: 130%; }
+#contentfront { margin-left: 2em; }
+#contentfront h2 { margin-top: 2em; margin-left: -1em; }
+h1,h2 { color: #900; font-weight: bold; }
+a { color: #00F; text-decoration: underline; }
+a:hover { color: #840084; }
+code { color: #107; }
+pre { padding-left: 2em; border-left: solid 0.3em #900; color: #000; }
 </style>
 </head>
 <body>
@@ -60,6 +68,7 @@ code { color: #02A; }
 <li><a href="#section14">Instrument data</a></li>
 </ol>
 <hr>
+<div id="contentfront">
 <h2 id="section1">1. About LibAiff</h2>
 <p>
 <strong>LibAiff</strong> is a library for C applications, providing
@@ -417,7 +426,7 @@ extract all of the sound on an Audio IFF file by simply doing repeated calls in 
 </p>
 <h2 id="section10">10. Reading sound samples: the normal mode</h2>
 <pre>
-int AIFF_ReadSamples32Bit(AIFF_ReadRef r,sint32* samples,int nsamples) ;
+int AIFF_ReadSamples32Bit(AIFF_ReadRef r,int32_t* samples,int nsamples) ;
 </pre>
 <p>
 Use this function to avoid dealing with segments, multiple sample sizes or byte order: it will convert and provide
@@ -475,7 +484,7 @@ int AIFF_StartWritingSamples(AIFF_WriteRef w) ;
 
 int AIFF_WriteSamples(AIFF_WriteRef w,void* buffer,size_t len) ;
 
-int AIFF_WriteSamples32Bit(AIFF_WriteRef w,sint32* samples,int nsamples) ;
+int AIFF_WriteSamples32Bit(AIFF_WriteRef w,int32_t* samples,int nsamples) ;
 
 int AIFF_EndWritingSamples(AIFF_WriteRef w) ;
 </pre>
@@ -658,6 +667,7 @@ The function returns as usual, and the data will be stored in the
 structure pointed to by `ins'.
 </p>
 
+</div>
 <hr>
 <p>
 Copyright &copy; 2005, 2006 by Marco Trillo &lt;<a href="mailto:marcotrillo@gmail.com">marcotrillo@gmail.com</a>&gt;
