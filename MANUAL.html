@@ -37,11 +37,16 @@ h2 { font-size: 160%; }
 h3 { color: #006; font-size: 130%; }
 #contentfront { margin-left: 2em; }
 #contentfront h2 { margin-top: 2em; margin-left: -1em; }
-h1,h2 { color: #900; font-weight: bold; }
-a { color: #00F; text-decoration: underline; }
-a:hover { color: #840084; }
-code { color: #107; }
-pre { padding-left: 2em; border-left: solid 0.3em #900; color: #000; }
+h1, h2 { font-weight: bold; }
+@media screen {
+	h1, h2 { color: #900; }
+	a { color: #00F; text-decoration: underline; }
+	a:hover { color: #840084; }
+	code { color: #107; }
+}
+pre { padding-left: 2em; }
+@media screen { pre { border-left: solid 0.3em #900; } }
+@media print { pre { border-left: solid 0.3em #000; } }
 </style>
 </head>
 <body>
