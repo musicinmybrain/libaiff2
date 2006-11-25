@@ -41,7 +41,7 @@ $Id$
 		available in different formats:
 
 	MANUAL: ASCII text/plain version
-	MANUAL.html: HTML text/html ISO-8859-1 version
+	MANUAL.html: HTML text/html UTF-8 version
 
 3. Reporting bugs, submitting patches, etc.
 
