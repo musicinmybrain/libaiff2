@@ -1,0 +1,51 @@
+$Id$
+
+1. Compilation and installation of LibAiff
+		
+		The default prefix for LIBAIFF installation
+		is `/usr/local'. Prefix means that libraries
+		will be installed on the lib/ subdirectory,
+		includes on the include/ subdirectory and 
+		so on.
+
+		You can chose a different prefix with the 
+		`--prefix' option of the configuration 
+		script.
+		Use `./configure --help' for more details.
+
+		In the following examples, `%' means the 
+		shell prompt for a normal system user, 
+		and `#' means the shell prompt for a 
+		privileged user capable of writing to the
+		selected prefix.
+
+	% ./configure
+	% make
+	# make install
+
+		LibAiff will be installed as a `static library'.
+
+	1.1. Installating the documentation
+		
+		While the default installation script does not 
+		do so, it is advisable to copy the 
+		provided documentation to a system-wide 
+		directory such as share/doc/libaiff/:
+
+	# cp MANUAL* /usr/local/share/doc/libaiff/
+
+
+2. Using the library
+
+		Please refer to the provided documentation,
+		available in different formats:
+
+	MANUAL: ASCII text/plain version
+	MANUAL.html: HTML text/html ISO-8859-1 version
+
+3. Reporting bugs, submitting patches, etc.
+
+	Current LibAiff mantainer:
+		<marcotrillo@gmail.com>
+
+
