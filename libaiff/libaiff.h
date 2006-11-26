@@ -115,12 +115,15 @@ struct s_IFFChunk
 } ;
 typedef struct s_IFFChunk IFFChunk ;
 
+/*
+ * WARNING: this struct is not alignment-safe!
+ */
 struct s_AIFFCommon
 {
 	uint16_t numChannels ;
 	uint32_t numSampleFrames ;
 	uint16_t sampleSize ;
-	iext sampleRate ;
+	iext sampleRate ; /* Motorola 80-bit extended */
 } ;
 typedef struct s_AIFFCommon CommonChunk ;
 
@@ -128,7 +131,6 @@ struct s_AIFFSound
 {
 	uint32_t offset ;
 	uint32_t blockSize ;
-	char samples ;
 } ;
 typedef struct s_AIFFSound SoundChunk ;
 

@@ -363,11 +363,16 @@ AIFF_WriteOpen(const char *file)
 {
 	AIFF_WriteRef w;
 	IFFHeader hdr;
-
+	ASSERT(sizeof(IFFHeader) == 12);
+	
 	w = malloc(kAiffWriteRefSize);
 	if (!w) {
 		return NULL;
 	}
+
+	/*
+	 * Simultaneous open for reading & writing
+	 */
 	w->fd = fopen(file, "w+b");
 	if (w->fd == NULL) {
 		return NULL;
@@ -404,6 +409,7 @@ AIFF_SetSoundFormat(AIFF_WriteRef w, int channels, int samplingRate,
 	uint8_t buffer[10];
 	CommonChunk c;
 	IFFChunk chk;
+	ASSERT(sizeof(IFFChunk) == 8);
 
 	if (w->stat != 0)
 		return 0;
@@ -423,7 +429,13 @@ AIFF_SetSoundFormat(AIFF_WriteRef w, int channels, int samplingRate,
 	sRate = (double) samplingRate;
 	ieee754_write_extended(sRate, buffer);
 
-	/* Write out the data */
+	/*
+	 * Write out the data.
+	 * Write each independent field separately,
+	 * since sizeof(CommonChunk) % 2 != 0, 
+	 * so aligning may occur and insert some
+	 * zeros between our fields!
+	 */
 	if (fwrite(&(c.numChannels), 1, 2, w->fd) < 2
 	    || fwrite(&(c.numSampleFrames), 1, 4, w->fd) < 4
 	    || fwrite(&(c.sampleSize), 1, 2, w->fd) < 2
@@ -454,6 +466,7 @@ AIFF_StartWritingSamples(AIFF_WriteRef w)
 {
 	IFFChunk chk;
 	SoundChunk s;
+	ASSERT(sizeof(SoundChunk) == 8);
 
 	if (w->stat != 1)
 		return 0;
@@ -563,6 +576,9 @@ AIFF_WriteSamplesNoSwap(AIFF_WriteRef w, void *samples, size_t len)
 	return 1;
 }
 
+/*
+ * XXX: what about using lpcm_swap_samples() ?
+ */
 int 
 AIFF_WriteSamples32Bit(AIFF_WriteRef w, int32_t * samples, int nsamples)
 {
@@ -650,26 +666,25 @@ AIFF_WriteSamples32Bit(AIFF_WriteRef w, int32_t * samples, int nsamples)
 	return 1;
 }
 
+/*
+ * WARNING: do not mix fread() & fwrite(), use fseek() before !
+ */
 int 
 AIFF_EndWritingSamples(AIFF_WriteRef w)
 {
-	char car = 0;
 	uint32_t segment;
 	long of;
 	IFFChunk chk;
 	CommonChunk c;
-	uint32_t len;
-	uint32_t curpos;
+	uint32_t len, curpos;
 
 	DestroyBuffer(w);
 
 	if (w->stat != 2)
 		return 0;
 
-	if (w->sampleBytes & 0x1) {
-		if (fwrite(&car, 1, 1, w->fd) < 1) {
-			return -1;
-		}
+	if (w->sampleBytes & 1) {
+		fputc(0, w->fd);
 		++(w->sampleBytes);
 		++(w->len);
 	}
@@ -850,13 +865,18 @@ AIFF_EndWritingMarkers(AIFF_WriteRef w)
 	if (ckid != ARRANGE_BE32(AIFF_MARK)) {
 		return -1;
 	}
+	
+	/*
+	 * Correct the chunk length
+	 * and the nMarkers field
+	 */
 	nMarkers = (uint16_t) (w->markerPos);
 	nMarkers = ARRANGE_BE16(nMarkers);
 
-	/*
-	 * Correct the chunk length
-	 * and the 'nMarkers' field
-	 */
+	/* XXX: this is bogus, but required by this API */
+	if (fseek(w->fd, offSet + 4, SEEK_SET) < 0) {
+		return -1;
+	}
 	if (fwrite(&cklen, 1, 4, w->fd) < 4
 	    || fwrite(&nMarkers, 1, 2, w->fd) < 2) {
 		return -1;

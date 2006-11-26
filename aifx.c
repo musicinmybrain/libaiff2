@@ -286,6 +286,7 @@ do_aifx_prepare(AIFF_ReadRef r)
 	uint32_t clen;
 	SoundChunk s;
 	long of;
+	ASSERT(sizeof(SoundChunk) == 8);
 
 	if (!find_iff_chunk(AIFF_SSND, r->fd, &clen))
 		return -1;
@@ -301,6 +302,10 @@ do_aifx_prepare(AIFF_ReadRef r)
 	if (s.offset)
 		r->soundLen -= s.offset;
 	of = (long) s.offset;
+
+	/*
+	 * FIXME: What is s.blockSize?
+	 */
 
 	if (of && fseek(r->fd, of, SEEK_CUR) < 0) {
 		return -1;
