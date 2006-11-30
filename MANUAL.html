@@ -117,8 +117,33 @@ simply <strong>AIFF</strong>) is a flexible file standard for storing and interc
 According to the official specification, <em><strong>Audio IFF</strong> is the result of several meetings held with music developers over a period of ten months in 1987-88.</em>
 </p>
 <h2 id="section3">3. How digital audio is stored on Audio IFF files</h2>
+<h3>Encodings supported by LibAiff</h3>
 <p>
-Digital audio is stored as <strong>sample points</strong>, which are samples taken of the sound wave.
+LibAiff supports both <strong>linear encodings</strong> and <strong>logarithmic encodings</strong> when reading AIFF or AIFF-C files.
+However, the native format which is used for audio exchanging between the application and LibAiff is <strong>Linear PCM</strong>, the standard audio signal encoding.
+<p>
+<strong>Linear encodings</strong> divide the given voltage range in equidistant steps or quants. As a result, loud signals (multiplicative) are encoded with more precision than weak signals (which have more rounding error in the quantization to steps of the same difference than the multiplicative signals). 
+<p>
+LibAiff supports the following linear encodings:
+<ul>
+<li><strong>Linear PCM (LPCM)</strong>, both big-endian and little-endian. Any bitwidth from 8 bits to 32 bits is supported.
+</ul>
+<p>
+<strong>Logarithmic encodings</strong> or <strong>floating point encodings</strong> have more quantization points in the low level range than in the high level range. As a result, loud signals (multiplicative) and weak signals are given the same resolution. When compared to linear encodings, logarithmic encodings provide better resolution than linear ones for low signals but worse resolution for loud signals.
+<p>
+LibAiff supports the following logarithmic encodings:
+<ul>
+<li><strong>8-bit &#181;-Law</strong>
+<li><strong>8-bit A-Law</strong>
+</ul>
+<p>
+A 8-bit &#181;-Law encoding is equivalent to a 14-bit LPCM encoding for low signals, and equivalent to a 6-bit LPCM encoding for loud signals. Thus, it's a <em>lossy encoding</em> when compared to a full 14-bit LPCM, but provides a 2:1 size ratio (since 14-bit LPCM is packed into 2-byte segments) while retaining the same resolution for low signals, which can be used for compression purposes. It can efficiently compress signals which are statistically more likely to be near a low level than a high signal level.
+<p>
+As detailed before, LibAiff uses Linear PCM internally, so any logarithmic encoded data will be transparently handled and converted by the library, so the application only needs to handle Linear PCM data. &#181;-Law encodings are converted to full 14-bit LPCM data (lossless conversion), and A-Law encodings are converted to 13-bit LPCM.
+
+<h3>How Linear PCM is handled by AIFF and LibAiff</h3>
+<p>
+LPCM audio is stored as <strong>sample points</strong>, which are samples taken of the sound wave.
 Each sample point is a <strong>signed value</strong> quantized to a fixed number of bits (the bitwidth or <strong>sample size</strong>). Of course, increasing the sample size will increase the resolution or definition
 of the sound wave, resulting in a greater <strong>sound quality</strong>.
 </p>
