@@ -1,4 +1,4 @@
-/* $Id$ */
+/*	$Id$ */
 /*-
  * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
  *
@@ -214,6 +214,7 @@ void AIFF_Close(AIFF_ReadRef) ;
 int AIFF_GetSoundFormat(AIFF_ReadRef,uint32_t*,int*,int*,int*,int*) ;
 AIFF_WriteRef AIFF_WriteOpen(const char*) ;
 int AIFF_SetAttribute(AIFF_WriteRef,IFFType,char*) ;
+int AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers) ;
 int AIFF_SetSoundFormat(AIFF_WriteRef,int,int,int ) ;
 int AIFF_StartWritingSamples(AIFF_WriteRef) ;
 int AIFF_WriteSamples(AIFF_WriteRef,void*,size_t) ;

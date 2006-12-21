@@ -1,4 +1,4 @@
-/* $Id$ */
+/*	$Id$ */
 /*-
  * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
  *
@@ -399,6 +399,42 @@ int
 AIFF_SetAttribute(AIFF_WriteRef w, IFFType attr, char *value)
 {
 	return set_iff_attribute(w, attr, value);
+}
+
+int
+AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers)
+{
+	int rval, r;
+	int doneReadingMarkers;
+	
+	/*
+	 * first of all, clone the IFF attributes
+	 */
+	rval = clone_iff_attributes(w, r);
+	
+	doneReadingMarkers = !cloneMarkers;
+	if (!doneReadingMarkers) {
+		int mMarkerId;
+		uint32_t mMarkerPos;
+		char *mMarkerName;
+		
+		if ((r = AIFF_StartWritingMarkers(w)) < 1)
+			return r;
+		
+		do {
+			if (AIFF_ReadMarker(r, &mMarkerId, &mMarkerPos, &mMarkerName) < 1)
+				doneReadingMarkers = 1;
+			else {
+				r = AIFF_WriteMarker(w, mMarkerPos, mMarkerName);
+				rval = (rval > 0 ? r : rval); /* preserve previous errors */
+			}
+		} while (!doneReadingMarkers);
+		
+		if ((r = AIFF_EndWritingMarkers(w)) < 1)
+			return r;
+	}
+	
+	return rval;
 }
 
 int 

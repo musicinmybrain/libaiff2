@@ -1,4 +1,4 @@
-/* $Id$ */
+/*	$Id$ */
 /*-
  * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
  *
@@ -23,11 +23,6 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-/*
- * ~~~~~~~~~ Implemented AIFF version: ~~~~~~~~~~~~
- * Audio Interchange File Format (AIFF) version 1.3
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
 
 #define LIBAIFF 1
@@ -138,3 +133,24 @@ set_iff_attribute(AIFF_WriteRef w, IFFType attrib, char *str)
 
 	return 1;
 }
+
+#define kIFFNumAttributes 4
+
+int
+clone_iff_attributes(AIFF_WriteRef w, AIFF_ReadRef r)
+{
+	IFFType attrs[kIFFNumAttributes] = {AIFF_NAME, AIFF_AUTH, AIFF_COPY, AIFF_ANNO};
+	int i;
+	int r, rval = 1;
+	char *p;
+	
+	for (i = 0; i < kIFFNumAttributes; ++i) {
+		if ((p = get_iff_attribute(r, attrs[i])) != NULL) {
+			r = set_iff_attribute(w, attrs[i], p);
+			rval = (rval > 0 ? r : rval); /* preserve previous errors */
+		}
+	}
+	
+	return rval;
+}
+

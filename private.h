@@ -1,4 +1,4 @@
-/* $Id$ */
+/*	$Id$ */
 
 #if !defined(HAVE_MEMSET) && defined(HAVE_BZERO)
 #ifdef HAVE_STRINGS_H
@@ -64,6 +64,7 @@ void AIFFAssertionFailed (const char*, int);
 int find_iff_chunk(IFFType chunk,FILE* fd,uint32_t* length) ;
 char* get_iff_attribute(AIFF_ReadRef r,IFFType attrib) ;
 int set_iff_attribute(AIFF_WriteRef w,IFFType attrib,char* str) ;
+int clone_iff_attributes(AIFF_WriteRef w, AIFF_ReadRef r) ;
 
 /* aifx.c */
 int get_aifx_format(AIFF_ReadRef r,uint32_t* nSamples,int* channels,
