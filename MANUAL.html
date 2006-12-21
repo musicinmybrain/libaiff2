@@ -331,6 +331,7 @@ The following <strong>attributes</strong> can be used on Audio IFF files:
 <li><strong>Copyright</strong> (<tt>AIFF_COPY</tt>)</li>
 <li><strong>Annotations</strong> (<tt>AIFF_ANNO</tt>)</li>
 </ul>
+<h3>Reading attributes</h3>
 <p>
 To <strong>extract</strong> an attribute from a reading Audio IFF file:
 </p>
@@ -361,6 +362,7 @@ if( attrib )
 	free( attrib ) ;
 }
 </pre>
+<h3>Storing attributes</h3>
 <p>
 To <strong>store</strong> an attribute into a writing Audio IFF file, you use:
 </p>
@@ -370,6 +372,24 @@ int AIFF_SetAttribute(AIFF_WriteRef w,IFFType typ,char* attribute) ;
 <p><tt>typ</tt> should be a valid identifier, and <tt>attribute</tt> a valid
 C-string with the content of the attribute.
 </p>
+<p>
+This function will return <strong>1</strong> on success, <strong>&lt; 1</strong> on error.
+</p>
+<h3>Cloning attributes</h3>
+<p>
+If you want to edit an existing Audio IFF file, it's often useful to clone all the attributes 
+present on the file to the new edited copy.
+<p>
+You can use the <tt>AIFF_CloneAttributes</tt> function to accomplish this.
+<pre>
+int AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers);
+</pre>
+<p>
+The <tt>r</tt> parameter is a reference to an opening-for-reading Audio IFF file from which the 
+attributes will be cloned.
+<p>
+If the <tt>cloneMarkers</tt> parameter is 1, markers (see <a href="#section13">section 13</a>) will be
+cloned too (this is not desirable if you have modified the audio content).
 <p>
 This function will return <strong>1</strong> on success, <strong>&lt; 1</strong> on error.
 </p>
