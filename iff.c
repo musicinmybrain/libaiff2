@@ -141,13 +141,13 @@ clone_iff_attributes(AIFF_WriteRef w, AIFF_ReadRef r)
 {
 	IFFType attrs[kIFFNumAttributes] = {AIFF_NAME, AIFF_AUTH, AIFF_COPY, AIFF_ANNO};
 	int i;
-	int r, rval = 1;
+	int ret, rval = 1;
 	char *p;
 	
 	for (i = 0; i < kIFFNumAttributes; ++i) {
 		if ((p = get_iff_attribute(r, attrs[i])) != NULL) {
-			r = set_iff_attribute(w, attrs[i], p);
-			rval = (rval > 0 ? r : rval); /* preserve previous errors */
+			ret = set_iff_attribute(w, attrs[i], p);
+			rval = (rval > 0 ? ret : rval); /* preserve previous errors */
 		}
 	}
 	

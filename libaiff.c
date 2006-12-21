@@ -404,7 +404,7 @@ AIFF_SetAttribute(AIFF_WriteRef w, IFFType attr, char *value)
 int
 AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers)
 {
-	int rval, r;
+	int rval, ret;
 	int doneReadingMarkers;
 	
 	/*
@@ -418,20 +418,20 @@ AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers)
 		uint32_t mMarkerPos;
 		char *mMarkerName;
 		
-		if ((r = AIFF_StartWritingMarkers(w)) < 1)
-			return r;
+		if ((ret = AIFF_StartWritingMarkers(w)) < 1)
+			return ret;
 		
 		do {
 			if (AIFF_ReadMarker(r, &mMarkerId, &mMarkerPos, &mMarkerName) < 1)
 				doneReadingMarkers = 1;
 			else {
-				r = AIFF_WriteMarker(w, mMarkerPos, mMarkerName);
-				rval = (rval > 0 ? r : rval); /* preserve previous errors */
+				ret = AIFF_WriteMarker(w, mMarkerPos, mMarkerName);
+				rval = (rval > 0 ? ret : rval); /* preserve previous errors */
 			}
 		} while (!doneReadingMarkers);
 		
-		if ((r = AIFF_EndWritingMarkers(w)) < 1)
-			return r;
+		if ((ret = AIFF_EndWritingMarkers(w)) < 1)
+			return ret;
 	}
 	
 	return rval;
