@@ -143,7 +143,8 @@ A 8-bit &#181;-Law encoding is equivalent to a 14-bit LPCM encoding for low sign
 <p>
 As detailed before, LibAiff uses Linear PCM internally, so any logarithmic encoded data will be transparently handled and converted by the library, so the application only needs to handle Linear PCM data. &#181;-Law encodings are converted to full 14-bit LPCM data (lossless conversion), and A-Law encodings are converted to 13-bit LPCM.
 <p>
-32-bit IEEE-754 floating point is converted to 32-bit integer LPCM.
+32-bit IEEE-754 floating point is converted to 32-bit integer LPCM. Note that this conversion loses some extra precision present
+on the original floating point values, due to the differences between linear and logarithmic encodings detailed above.
 <h3>How Linear PCM is handled by AIFF and LibAiff</h3>
 <p>
 LPCM audio is stored as <strong>sample points</strong>, which are samples taken of the sound wave.
