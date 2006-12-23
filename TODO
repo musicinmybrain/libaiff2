@@ -1,10 +1,8 @@
 $Id$
 
-LibAiff 3.99
+LibAiff 4.99
 =====================================
-This is a beta version of LibAiff.
-It doesn`t support yet all the
-AIFF features:
+This is a beta (CVS) version of LibAiff.
 
 To-do-list:
 	* Implementing <comments> for each <marker>
