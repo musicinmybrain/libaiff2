@@ -1,4 +1,4 @@
-/* $Id$ */
+/*	$Id$ */
 /*-
  * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
  *
@@ -23,11 +23,6 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-/*
- * ~~~~~~~~~ Implemented AIFF version: ~~~~~~~~~~~~
- * Audio Interchange File Format (AIFF) version 1.3
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
 
 #define LIBAIFF 1

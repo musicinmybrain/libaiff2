@@ -24,14 +24,9 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/*
- * ~~~~~~~~~ Implemented AIFF version: ~~~~~~~~~~~~
- * Audio Interchange File Format (AIFF) version 1.3
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- */
 
-#ifndef _LIBAIFF_H_
-#define _LIBAIFF_H_ 1
+#ifndef LIBAIFF_H_INCL
+#define LIBAIFF_H_INCL 1
 
 #include <stdio.h>
 #include <stdlib.h>

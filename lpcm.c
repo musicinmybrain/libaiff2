@@ -1,4 +1,4 @@
-/* $Id$ */
+/*	$Id$ */
 /*-
  * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
  *
@@ -23,11 +23,6 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-/*
- * ~~~~~~~~~ Implemented AIFF version: ~~~~~~~~~~~~
- * Audio Interchange File Format (AIFF) version 1.3
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
 
 #define LIBAIFF 1
@@ -71,7 +66,7 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 
 	switch (segmentSize) {
 	case 2:
-		if (flags == NOT_HOST_ENDIAN) {
+		if (flags & NOT_HOST_ENDIAN) {
 			for (i = 0; i < n; ++i)
 				words[i] = ARRANGE_ENDIAN_16(fwords[i]);
 		} else {
@@ -79,7 +74,7 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 		}
 		break;
 	case 3:
-		if (flags == NOT_HOST_ENDIAN) {
+		if (flags & NOT_HOST_ENDIAN) {
 			n *= 3;
 			for (i = 0; i < n; i += 3) {
 				x = fubytes[i];
@@ -96,7 +91,7 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 		}
 		break;
 	case 4:
-		if (flags == NOT_HOST_ENDIAN) {
+		if (flags & NOT_HOST_ENDIAN) {
 			for (i = 0; i < n; ++i)
 				dwords[i] = ARRANGE_ENDIAN_32(fdwords[i]);
 		} else {

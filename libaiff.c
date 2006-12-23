@@ -24,11 +24,6 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/*
- * ~~~~~~~~~ Implemented AIFF version: ~~~~~~~~~~~~
- * Audio Interchange File Format (AIFF) version 1.3
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- */
 
 #define LIBAIFF 1
 #include <libaiff/libaiff.h>
@@ -37,10 +32,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
 
 /* == Public functions == */
 
@@ -190,7 +181,6 @@ AIFF_ReadSamples(AIFF_ReadRef r, void *buffer, size_t len)
 		return -1;
 
 	switch (r->audioFormat) {
-	case AUDIO_FORMAT_lpcm:
 	case AUDIO_FORMAT_LPCM:
 		return do_lpcm(r, buffer, len);
 		
@@ -223,7 +213,6 @@ AIFF_Seek(AIFF_ReadRef r, uint32_t pos)
 		return -1;
 
 	switch (r->audioFormat) {
-	case AUDIO_FORMAT_lpcm:
 	case AUDIO_FORMAT_LPCM:
 		return lpcm_seek(r, pos);
 		

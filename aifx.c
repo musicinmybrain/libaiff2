@@ -1,4 +1,4 @@
-/* $Id$ */
+/*	$Id$ */
 /*-
  * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
  *
@@ -24,11 +24,6 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/*
- * ~~~~~~~~~ Implemented AIFF version: ~~~~~~~~~~~~
- * Audio Interchange File Format (AIFF) version 1.3
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- */
 
 #define LIBAIFF 1
 #include <libaiff/libaiff.h>
@@ -37,11 +32,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-
 
 int 
 get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
