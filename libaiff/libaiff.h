@@ -44,6 +44,8 @@
 #include <inttypes.h>
 #endif
 
+#define LIBAIFF_API_VERSION	0x30
+
 
 /* == Typedefs == */
 typedef uint32_t IFFType ;
@@ -94,6 +96,23 @@ typedef struct s_AIFF_ReadRef* AIFF_ReadRef ;
 #define AIFF_AUTH		0x41555448
 #define AIFF_COPY		0x28632920
 #define AIFF_ANNO		0x414e4e4f
+
+#if !defined(LIBAIFF) && !defined(LIBAIFF_NOCOMPAT)
+/*
+ * Backwards compatibility with LibAiff 1 and 2
+ */
+#ifdef WORDS_BIGENDIAN
+static char NameID[4] = {'N', 'A', 'M', 'E'};
+static char AuthID[4] = {'A', 'U', 'T', 'H'};
+static char CopyID[4] = {'(', 'c', ')', ' '};
+static char AnnoID[4] = {'A', 'N', 'N', 'O'};
+#else
+static char NameID[4] = {'E', 'M', 'A', 'N'};
+static char AuthID[4] = {'H', 'T', 'U', 'A'};
+static char CopyID[4] = {' ', ')', 'c', '('};
+static char AnnoID[4] = {'O', 'N', 'N', 'A'};
+#endif
+#endif /* !LIBAIFF && !LIBAIFF_NOCOMPAT */
 
 struct s_IFFHeader
 {
