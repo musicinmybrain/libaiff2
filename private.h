@@ -87,6 +87,10 @@ int ulaw_seek(AIFF_ReadRef, uint32_t) ;
 size_t do_alaw(AIFF_ReadRef, void*, size_t) ;
 int alaw_seek(AIFF_ReadRef, uint32_t) ;
 
+/* float32.c */
+size_t do_float32(AIFF_ReadRef, void*, size_t) ;
+int float32_seek(AIFF_ReadRef, uint32_t) ;
+
 /* extended.c */
 void ieee754_write_extended (double, uint8_t*);
 double ieee754_read_extended (uint8_t*);
