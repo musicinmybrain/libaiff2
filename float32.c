@@ -32,9 +32,23 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
+
 /*
- * IEEE-754 single precision floating point
+ * IEEE-754 32-bit single-precision floating point
+ *
+ * This is a conversor to linear 32-bit integer PCM
+ * using only integer arithmetic.
+ * 
+ * Some IEEE-754 documentation and references on the WWW:
+ * -------------------------------------------------------------
+ * http://stevehollasch.com/cgindex/coding/ieeefloat.html
+ * http://www.answers.com/topic/ieee-floating-point-standard
+ * http://www.cs.berkeley.edu/~wkahan/ieee754status/IEEE754.PDF
+ * http://www.psc.edu/general/software/packages/ieee/ieee.html
+ * http://www.duke.edu/~twf/cps104/floating.html
+ * -------------------------------------------------------------
  */
+
 static int32_t
 float32dec(uint32_t in)
 {
