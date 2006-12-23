@@ -64,35 +64,44 @@ float32dec(uint32_t in)
 		mantissa |= 0x800000; /* hidden bit */
 		exp -= 127; /* unbias exponent */
 	}
-
-	/* quantization */
-	mantissa <<= (8 + exp); /* 31 - 23 */
-
+	
+	/*
+	 * Quantization to linear PCM 31 bits.
+	 * 
+	 * Multiply the mantissa by 2^(-23+exp) to get the floating
+	 * point value, and then multiply by 2^31 to quantize
+	 * the floating point to 31 bits. So:
+	 * 
+	 * 2^(-23+exp) * 2^31 = 2^(8 + exp)
+	 */
+	exp += 8;
+	if (exp < 0) {
+		exp = -exp;
+		mantissa >>= exp;
+	} else {
+		mantissa <<= exp;
+	}
+	
 	if (sgn) {
 		int32_t val;
-
-		if (mantissa == 0x80000000) {
-#if 0
-			return (-2147483648); /* -(2^31) */
-#else
-			/*
-			 * ISO C90 does not have negative constants,
-			 * so we can't simply return -2147483648
-			 * (since 2147483648 can't be represented
-			 *  by two's complement positive numbers.)
-			 * This is a workaround.
-			 */
-			val = -2147483647;
-			return (val - 1); /* -(2^31) */
-#endif
-		} else {
-			val = (int32_t)mantissa;
+		
+		if (mantissa == 0x80000000)
+			return (-2147483647 - 1); /* -(2^31) */
+		else {
+			val = (int32_t) mantissa;
 			return (-val);
 		}
 	} else {
-		if (mantissa == 0x80000000) /* 1.0 ? */
-			--mantissa; /* clip to +(2^31 - 1) */
-		return (int32_t)mantissa;
+		/*
+		 * if mantissa is 0x80000000 (for a 1.0 float),
+		 * we should return +2147483648 (2^31), but in
+		 * two's complement arithmetic the max. positive value
+		 * is +2147483647, so clip the result.
+		 */
+		if (mantissa == 0x80000000)
+			return (2147483647);
+		else
+			return ((int32_t) mantissa);
 	}
 }
 
