@@ -71,8 +71,20 @@ float32dec(uint32_t in)
 	if (sgn) {
 		int32_t val;
 
-		if (mantissa == 0x80000000)
+		if (mantissa == 0x80000000) {
+#if 0
 			return (-2147483648); /* -(2^31) */
+#else
+			/*
+			 * ISO C90 does not have negative constants,
+			 * so we can't simply return -2147483648
+			 * (since 2147483648 can't be represented
+			 *  by two's complement positive numbers.)
+			 * This is a workaround.
+			 */
+			val = -2147483647;
+			return (val - 1); /* -(2^31) */
+#endif
 		else {
 			val = (int32_t)mantissa;
 			return (-val);
