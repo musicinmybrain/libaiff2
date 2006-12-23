@@ -85,7 +85,7 @@ float32dec(uint32_t in)
 			val = -2147483647;
 			return (val - 1); /* -(2^31) */
 #endif
-		else {
+		} else {
 			val = (int32_t)mantissa;
 			return (-val);
 		}
