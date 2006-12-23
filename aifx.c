@@ -118,6 +118,17 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 			if (flags)
 				*flags = LPCM_LTE_ENDIAN;
 			break;
+
+		case AUDIO_FORMAT_FL32: /* 'FL32' */
+		case AUDIO_FORMAT_fl32: /* 'fl32' */
+			aFmt = AUDIO_FORMAT_FL32;
+			if (segmentSize)
+				*segmentSize = 4;
+			if (bitsPerSample)
+				*bitsPerSample = 32;
+			if (flags)
+				*flags = 0;
+			break;
 				
 		default:
 			aFmt = AUDIO_FORMAT_UNKNOWN;

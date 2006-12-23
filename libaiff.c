@@ -189,6 +189,9 @@ AIFF_ReadSamples(AIFF_ReadRef r, void *buffer, size_t len)
 		
 	case AUDIO_FORMAT_ALAW:
 		return do_alaw(r, buffer, len);
+	
+	case AUDIO_FORMAT_FL32:
+		return do_float32(r, buffer, len);
 	default:
 		return 0;
 	}
@@ -221,6 +224,9 @@ AIFF_Seek(AIFF_ReadRef r, uint32_t pos)
 	
 	case AUDIO_FORMAT_ALAW:
 		return alaw_seek(r, pos);
+	
+	case AUDIO_FORMAT_FL32:
+		return float32_seek(r, pos);
 	default:
 		return 0;
 	}
