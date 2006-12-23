@@ -44,7 +44,7 @@
 #include <inttypes.h>
 #endif
 
-#define LIBAIFF_API_VERSION	0x30
+#define LIBAIFF_API_VERSION	399
 
 
 /* == Typedefs == */
@@ -111,7 +111,7 @@ static char NameID[4] = {'E', 'M', 'A', 'N'};
 static char AuthID[4] = {'H', 'T', 'U', 'A'};
 static char CopyID[4] = {' ', ')', 'c', '('};
 static char AnnoID[4] = {'O', 'N', 'N', 'A'};
-#endif
+#endif /* WORDS_BIGENDIAN */
 #endif /* !LIBAIFF && !LIBAIFF_NOCOMPAT */
 
 struct s_IFFHeader
@@ -288,8 +288,9 @@ int AIFF_WriteClose(AIFF_WriteRef) ;
 #undef WORDS_BIGENDIAN
 #endif
 
-#endif
+#endif /* !LIBAIFF */
 
 
-#endif
+#endif /* LIBAIFF_H_INCL */
+
 
