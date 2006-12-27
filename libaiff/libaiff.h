@@ -171,7 +171,6 @@ size_t AIFF_ReadSamples(AIFF_Ref,void*,size_t) ;
 int AIFF_Seek(AIFF_Ref,uint32_t) ;
 int AIFF_ReadSamples32Bit(AIFF_Ref,int32_t*,int) ;
 int AIFF_ReadMarker(AIFF_Ref,int*,uint32_t*,char**) ;
-void AIFF_Close(AIFF_Ref) ;
 int AIFF_GetSoundFormat(AIFF_Ref,uint32_t*,int*,int*,int*,int*) ;
 int AIFF_SetAttribute(AIFF_Ref,IFFType,char*) ;
 int AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers) ;
