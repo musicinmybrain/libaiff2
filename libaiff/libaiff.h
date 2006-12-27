@@ -154,14 +154,14 @@ typedef struct s_Instrument Instrument ;
 
 /* == Function prototypes == */
 AIFF_Ref AIFF_OpenFile(const char *, int) ;
-void AIFF_CloseFile(AIFF_Ref) ;
+int AIFF_CloseFile(AIFF_Ref) ;
 
 #if !defined(LIBAIFF) && !defined(LIBAIFF_NOCOMPAT)
 #define AIFF_ReadRef		AIFF_Ref
 #define AIFF_WriteRef		AIFF_Ref
 #define AIFF_Open(f)		AIFF_OpenFile((f), F_RDONLY)
 #define AIFF_WriteOpen(f)	AIFF_OpenFile((f), F_WRONLY)
-#define AIFF_Close(f)		AIFF_CloseFile(f)
+#define AIFF_Close(f)		(void) AIFF_CloseFile(f)
 #define AIFF_WriteClose(f)	AIFF_CloseFile(f)
 #endif /* !LIBAIFF && !LIBAIFF_NOCOMPAT */
 

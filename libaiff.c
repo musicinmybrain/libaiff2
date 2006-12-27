@@ -37,7 +37,7 @@
 static AIFF_Ref AIFF_ReadOpen (const char *);
 static AIFF_Ref AIFF_WriteOpen (const char *, int);
 static void AIFF_ReadClose (AIFF_Ref);
-static void AIFF_WriteClose (AIFF_Ref);
+static int AIFF_WriteClose (AIFF_Ref);
 static void* InitBuffer (AIFF_Ref, size_t);
 static void DestroyBuffer (AIFF_Ref);
 static int AIFF_WriteSamplesNoSwap (AIFF_Ref, void *, size_t);
@@ -59,16 +59,23 @@ AIFF_OpenFile(const char *file, int flags)
 	return ref;
 }
 
-void
+int
 AIFF_CloseFile(AIFF_Ref ref)
 {
+	int r;
+	
 	if (!ref)
-		return;
+		return -1;
 	if (ref->flags & F_RDONLY) {
 		AIFF_ReadClose(ref);
+		r = 1;
 	} else if (ref->flags & F_WRONLY) {
-		AIFF_WriteClose(ref);
+		r = AIFF_WriteClose(ref);
+	} else {
+		r = -1;
 	}
+	
+	return r;
 }
 
 static AIFF_Ref 
@@ -412,7 +419,7 @@ AIFF_ReadClose(AIFF_Ref r)
 }
 
 static AIFF_Ref 
-AIFF_WriteOpen(const char *file)
+AIFF_WriteOpen(const char *file, int flags)
 {
 	AIFF_Ref w;
 	IFFHeader hdr;
