@@ -1,6 +1,7 @@
 /*	$Id$ */
+
 /*-
- * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2005, 2006 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -79,7 +80,7 @@ find_iff_chunk(IFFType chunk, FILE * fd, uint32_t * length)
 }
 
 char *
-get_iff_attribute(AIFF_ReadRef r, IFFType attrib)
+get_iff_attribute(AIFF_Ref r, IFFType attrib)
 {
 	char *str;
 	uint32_t len;
@@ -105,7 +106,7 @@ get_iff_attribute(AIFF_ReadRef r, IFFType attrib)
 }
 
 int 
-set_iff_attribute(AIFF_WriteRef w, IFFType attrib, char *str)
+set_iff_attribute(AIFF_Ref w, IFFType attrib, char *str)
 {
 	uint8_t car = 0x0;
 	IFFChunk chk;
@@ -137,7 +138,7 @@ set_iff_attribute(AIFF_WriteRef w, IFFType attrib, char *str)
 #define kIFFNumAttributes 4
 
 int
-clone_iff_attributes(AIFF_WriteRef w, AIFF_ReadRef r)
+clone_iff_attributes(AIFF_Ref w, AIFF_Ref r)
 {
 	IFFType attrs[kIFFNumAttributes] = {AIFF_NAME, AIFF_AUTH, AIFF_COPY, AIFF_ANNO};
 	int i;

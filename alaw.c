@@ -1,6 +1,7 @@
 /*	$Id$ */
+
 /*-
- * Copyright (c) 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2006 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -77,7 +78,7 @@ alawdec (uint8_t x)
  * Maybe we should unify the u-Law & A-Law encodings in a do_ualaw() ?
  */
 size_t
-do_alaw (AIFF_ReadRef r, void *buffer, size_t len)
+do_alaw (AIFF_Ref r, void *buffer, size_t len)
 {
 	size_t n, i, rem, bytesToRead, bytesRead;
 	uint8_t* bytes;
@@ -122,7 +123,7 @@ do_alaw (AIFF_ReadRef r, void *buffer, size_t len)
 
 
 int 
-alaw_seek (AIFF_ReadRef r, uint32_t pos)
+alaw_seek (AIFF_Ref r, uint32_t pos)
 {
 	/*
 	 * Seeking is the same in both

@@ -1,7 +1,8 @@
 /*	$Id$ */
+
 /*-
- * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
- *
+ * Copyright (c) 2005, 2006 Marco Trillo
+ * 
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
  * documentation files (the "Software"), to deal in the
@@ -33,15 +34,50 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* == Public functions == */
+static AIFF_Ref AIFF_ReadOpen (const char *);
+static AIFF_Ref AIFF_WriteOpen (const char *, int);
+static void AIFF_ReadClose (AIFF_Ref);
+static void AIFF_WriteClose (AIFF_Ref);
+static void* InitBuffer (AIFF_Ref, size_t);
+static void DestroyBuffer (AIFF_Ref);
+static int AIFF_WriteSamplesNoSwap (AIFF_Ref, void *, size_t);
 
-AIFF_ReadRef 
-AIFF_Open(const char *file)
+AIFF_Ref
+AIFF_OpenFile(const char *file, int flags)
 {
-	AIFF_ReadRef r;
+	AIFF_Ref ref = NULL;
+	
+	if (flags & F_RDONLY) {
+		ref = AIFF_ReadOpen(file);
+	} else if (flags & F_WRONLY) {
+		ref = AIFF_WriteOpen(file, flags);
+	}
+
+	if (ref)
+		ref->flags |= flags;
+
+	return ref;
+}
+
+void
+AIFF_CloseFile(AIFF_Ref ref)
+{
+	if (!ref)
+		return;
+	if (ref->flags & F_RDONLY) {
+		AIFF_ReadClose(ref);
+	} else if (ref->flags & F_WRONLY) {
+		AIFF_WriteClose(ref);
+	}
+}
+
+static AIFF_Ref 
+AIFF_ReadOpen(const char *file)
+{
+	AIFF_Ref r;
 	IFFHeader hdr;
 
-	r = malloc(kAiffReadRefSize);
+	r = malloc(kAIFFRefSize);
 	if (!r) {
 		return NULL;
 	}
@@ -103,13 +139,17 @@ AIFF_Open(const char *file)
 	r->stat = 0;
 	r->buffer = NULL;
 	r->buflen = 0;
+	r->flags |= F_RDONLY;
 
 	return r;
 }
 
 char *
-AIFF_GetAttribute(AIFF_ReadRef r, IFFType attrib)
+AIFF_GetAttribute(AIFF_Ref r, IFFType attrib)
 {
+	if (!r || !(r->flags & F_RDONLY))
+		return NULL;
+	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
 	case AIFF_TYPE_AIFC:
@@ -121,8 +161,11 @@ AIFF_GetAttribute(AIFF_ReadRef r, IFFType attrib)
 }
 
 int 
-AIFF_ReadMarker(AIFF_ReadRef r, int *id, uint32_t * pos, char **name)
+AIFF_ReadMarker(AIFF_Ref r, int *id, uint32_t * pos, char **name)
 {
+	if (!r || !(r->flags & F_RDONLY))
+		return -1;
+	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
 	case AIFF_TYPE_AIFC:
@@ -134,8 +177,11 @@ AIFF_ReadMarker(AIFF_ReadRef r, int *id, uint32_t * pos, char **name)
 }
 
 int 
-AIFF_GetInstrumentData(AIFF_ReadRef r, Instrument * i)
+AIFF_GetInstrumentData(AIFF_Ref r, Instrument * i)
 {
+	if (!r || !(r->flags & F_RDONLY))
+		return -1;
+	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
 	case AIFF_TYPE_AIFC:
@@ -147,9 +193,12 @@ AIFF_GetInstrumentData(AIFF_ReadRef r, Instrument * i)
 }
 
 int 
-AIFF_GetSoundFormat(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
+AIFF_GetSoundFormat(AIFF_Ref r, uint32_t * nSamples, int *channels,
     int *samplingRate, int *bitsPerSample, int *segmentSize)
 {
+	if (!r || !(r->flags & F_RDONLY))
+		return -1;
+	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
 	case AIFF_TYPE_AIFC:
@@ -163,9 +212,12 @@ AIFF_GetSoundFormat(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 }
 
 size_t 
-AIFF_ReadSamples(AIFF_ReadRef r, void *buffer, size_t len)
+AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 {
 	int res = 1;
+
+	if (!r || !(r->flags & F_RDONLY))
+		return 0;
 
 	if (r->stat == 0) {
 		switch (r->format) {
@@ -178,7 +230,7 @@ AIFF_ReadSamples(AIFF_ReadRef r, void *buffer, size_t len)
 		}
 	}
 	if (res < 1)
-		return -1;
+		return 0;
 
 	switch (r->audioFormat) {
 	case AUDIO_FORMAT_LPCM:
@@ -200,9 +252,12 @@ AIFF_ReadSamples(AIFF_ReadRef r, void *buffer, size_t len)
 }
 
 int 
-AIFF_Seek(AIFF_ReadRef r, uint32_t pos)
+AIFF_Seek(AIFF_Ref r, uint32_t pos)
 {
 	int res = 0;
+
+	if (!r || !(r->flags & F_RDONLY))
+		return -1;
 
 	r->stat = 0;
 	switch (r->format) {
@@ -235,7 +290,7 @@ AIFF_Seek(AIFF_ReadRef r, uint32_t pos)
 }
 
 int 
-AIFF_ReadSamples32Bit(AIFF_ReadRef r, int32_t * samples, int nsamples)
+AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nsamples)
 {
 	void *buffer;
 	int i, j;
@@ -250,7 +305,10 @@ AIFF_ReadSamples32Bit(AIFF_ReadRef r, int32_t * samples, int nsamples)
 	uint8_t *outbytes;
 	uint8_t x, y, z;
 
-	if (!r || n < 1 || r->segmentSize == 0) {
+	if (!r || !(r->flags & F_RDONLY))
+		return -1;
+
+	if (n < 1 || r->segmentSize == 0) {
 		if (r->buffer) {
 			free(r->buffer);
 			r->buffer = NULL;
@@ -341,8 +399,8 @@ AIFF_ReadSamples32Bit(AIFF_ReadRef r, int32_t * samples, int nsamples)
 }
 
 
-void 
-AIFF_Close(AIFF_ReadRef r)
+static void 
+AIFF_ReadClose(AIFF_Ref r)
 {
 	if (r->buffer)
 		free(r->buffer);
@@ -353,14 +411,14 @@ AIFF_Close(AIFF_ReadRef r)
 	return;
 }
 
-AIFF_WriteRef 
+static AIFF_Ref 
 AIFF_WriteOpen(const char *file)
 {
-	AIFF_WriteRef w;
+	AIFF_Ref w;
 	IFFHeader hdr;
 	ASSERT(sizeof(IFFHeader) == 12);
 	
-	w = malloc(kAiffWriteRefSize);
+	w = malloc(kAIFFRefSize);
 	if (!w) {
 		return NULL;
 	}
@@ -386,21 +444,27 @@ AIFF_WriteOpen(const char *file)
 	w->buffer = NULL;
 	w->buflen = 0;
 	w->tics = 0;
+	w->flags = F_WRONLY;
 
 	return w;
 }
 
 int 
-AIFF_SetAttribute(AIFF_WriteRef w, IFFType attr, char *value)
+AIFF_SetAttribute(AIFF_Ref w, IFFType attr, char *value)
 {
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	return set_iff_attribute(w, attr, value);
 }
 
 int
-AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers)
+AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers)
 {
 	int rval, ret;
 	int doneReadingMarkers;
+
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	
 	/*
 	 * first of all, clone the IFF attributes
@@ -433,7 +497,7 @@ AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers)
 }
 
 int 
-AIFF_SetSoundFormat(AIFF_WriteRef w, int channels, int samplingRate,
+AIFF_SetSoundFormat(AIFF_Ref w, int channels, int samplingRate,
     int bitsPerSample)
 {
 	double sRate;
@@ -442,6 +506,8 @@ AIFF_SetSoundFormat(AIFF_WriteRef w, int channels, int samplingRate,
 	IFFChunk chk;
 	ASSERT(sizeof(IFFChunk) == 8);
 
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	if (w->stat != 0)
 		return 0;
 
@@ -493,12 +559,14 @@ AIFF_SetSoundFormat(AIFF_WriteRef w, int channels, int samplingRate,
 }
 
 int 
-AIFF_StartWritingSamples(AIFF_WriteRef w)
+AIFF_StartWritingSamples(AIFF_Ref w)
 {
 	IFFChunk chk;
 	SoundChunk s;
 	ASSERT(sizeof(SoundChunk) == 8);
 
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	if (w->stat != 1)
 		return 0;
 
@@ -527,7 +595,7 @@ AIFF_StartWritingSamples(AIFF_WriteRef w)
 }
 
 static void *
-InitBuffer(AIFF_WriteRef w, size_t len)
+InitBuffer(AIFF_Ref w, size_t len)
 {
 	if (w->buflen < len) {
 modsize:
@@ -551,7 +619,7 @@ modsize:
 }
 
 static void 
-DestroyBuffer(AIFF_WriteRef w)
+DestroyBuffer(AIFF_Ref w)
 {
 	if (w->buffer)
 		free(w->buffer);
@@ -563,15 +631,14 @@ DestroyBuffer(AIFF_WriteRef w)
 	return;
 }
 
-
-static int AIFF_WriteSamplesNoSwap(AIFF_WriteRef, void *, size_t);
-
 int 
-AIFF_WriteSamples(AIFF_WriteRef w, void *samples, size_t len)
+AIFF_WriteSamples(AIFF_Ref w, void *samples, size_t len)
 {
 	int n;
 	void *buffer;
 
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	if (w->stat != 2)
 		return 0;
 
@@ -590,7 +657,7 @@ AIFF_WriteSamples(AIFF_WriteRef w, void *samples, size_t len)
 }
 
 static int 
-AIFF_WriteSamplesNoSwap(AIFF_WriteRef w, void *samples, size_t len)
+AIFF_WriteSamplesNoSwap(AIFF_Ref w, void *samples, size_t len)
 {
 	uint32_t sampleBytes;
 
@@ -611,7 +678,7 @@ AIFF_WriteSamplesNoSwap(AIFF_WriteRef w, void *samples, size_t len)
  * XXX: what about using lpcm_swap_samples() ?
  */
 int 
-AIFF_WriteSamples32Bit(AIFF_WriteRef w, int32_t * samples, int nsamples)
+AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int nsamples)
 {
 	register int i, j;
 	register int n = nsamples;
@@ -627,7 +694,9 @@ AIFF_WriteSamples32Bit(AIFF_WriteRef w, int32_t * samples, int nsamples)
 	uint8_t *outbytes;
 	uint8_t x, y, z;
 
-	if (!w || w->stat != 2 || w->segmentSize == 0 || n < 1) {
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
+	if (w->stat != 2 || w->segmentSize == 0 || n < 1) {
 		DestroyBuffer(w);
 		return -1;
 	}
@@ -701,7 +770,7 @@ AIFF_WriteSamples32Bit(AIFF_WriteRef w, int32_t * samples, int nsamples)
  * WARNING: do not mix fread() & fwrite(), use fseek() before !
  */
 int 
-AIFF_EndWritingSamples(AIFF_WriteRef w)
+AIFF_EndWritingSamples(AIFF_Ref w)
 {
 	uint32_t segment;
 	long of;
@@ -709,11 +778,12 @@ AIFF_EndWritingSamples(AIFF_WriteRef w)
 	CommonChunk c;
 	uint32_t len, curpos;
 
-	DestroyBuffer(w);
-
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	if (w->stat != 2)
 		return 0;
-
+	
+	DestroyBuffer(w);
 	if (w->sampleBytes & 1) {
 		fputc(0, w->fd);
 		++(w->sampleBytes);
@@ -787,11 +857,13 @@ AIFF_EndWritingSamples(AIFF_WriteRef w)
 }
 
 int 
-AIFF_StartWritingMarkers(AIFF_WriteRef w)
+AIFF_StartWritingMarkers(AIFF_Ref w)
 {
 	IFFChunk chk;
 	uint16_t nMarkers = 0;
 
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	if (w->stat != 3)
 		return -1;
 
@@ -813,12 +885,14 @@ AIFF_StartWritingMarkers(AIFF_WriteRef w)
 }
 
 int 
-AIFF_WriteMarker(AIFF_WriteRef w, uint32_t position, char *name)
+AIFF_WriteMarker(AIFF_Ref w, uint32_t position, char *name)
 {
 	Marker m;
 	int l = 0;
 	int pad = 0;
 
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	if (w->stat != 4)
 		return -1;
 
@@ -870,7 +944,7 @@ AIFF_WriteMarker(AIFF_WriteRef w, uint32_t position, char *name)
 }
 
 int 
-AIFF_EndWritingMarkers(AIFF_WriteRef w)
+AIFF_EndWritingMarkers(AIFF_Ref w)
 {
 	IFFType ckid;
 	uint32_t cklen;
@@ -878,6 +952,8 @@ AIFF_EndWritingMarkers(AIFF_WriteRef w)
 	long offSet;
 	uint16_t nMarkers;
 
+	if (!w || !(w->flags & F_WRONLY))
+		return -1;
 	if (w->stat != 4)
 		return -1;
 
@@ -921,8 +997,8 @@ AIFF_EndWritingMarkers(AIFF_WriteRef w)
 	return 1;
 }
 
-int 
-AIFF_WriteClose(AIFF_WriteRef w)
+static int 
+AIFF_WriteClose(AIFF_Ref w)
 {
 	int ret = 1;
 	IFFHeader hdr;

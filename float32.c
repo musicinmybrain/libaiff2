@@ -1,6 +1,7 @@
 /*	$Id$ */
+
 /*-
- * Copyright (c) 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2006 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -139,7 +140,7 @@ float32_swap_samples(void *buffer, int n)
 }
 
 size_t 
-do_float32(AIFF_ReadRef r, void *buffer, size_t len)
+do_float32(AIFF_Ref r, void *buffer, size_t len)
 {
 	int n;
 	uint32_t clen;
@@ -185,7 +186,7 @@ do_float32(AIFF_ReadRef r, void *buffer, size_t len)
 }
 
 int 
-float32_seek(AIFF_ReadRef r, uint32_t pos)
+float32_seek(AIFF_Ref r, uint32_t pos)
 {
 	long of;
 	uint32_t b;

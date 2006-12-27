@@ -1,6 +1,7 @@
 /*	$Id$ */
+
 /*-
- * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2005, 2006 Marco Trillo <marcotrillo@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -34,7 +35,7 @@
 #include <stdlib.h>
 
 int 
-get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
+get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
     int *samplingRate, int *bitsPerSample, int *segmentSize,
     IFFType * audioFormat, int *flags)
 {
@@ -148,7 +149,7 @@ get_aifx_format(AIFF_ReadRef r, uint32_t * nSamples, int *channels,
 }
 
 int 
-read_aifx_marker(AIFF_ReadRef r, int *id, uint32_t * position, char **name)
+read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 {
 	uint16_t nMarkers;
 	uint32_t cklen;
@@ -214,7 +215,7 @@ read_aifx_marker(AIFF_ReadRef r, int *id, uint32_t * position, char **name)
 }
 
 int 
-get_aifx_instrument(AIFF_ReadRef r, Instrument * inpi)
+get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 {
 	int i;
 	uint32_t cklen;
@@ -282,7 +283,7 @@ get_aifx_instrument(AIFF_ReadRef r, Instrument * inpi)
 }
 
 int 
-do_aifx_prepare(AIFF_ReadRef r)
+do_aifx_prepare(AIFF_Ref r)
 {
 	uint32_t clen;
 	SoundChunk s;

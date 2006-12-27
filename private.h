@@ -56,42 +56,113 @@ void AIFFAssertionFailed (const char*, int);
 #define AIFF_INST 0x494e5354
 #define AIFF_COMT 0x434f4d54
 
-/* Flags for LPCM format */
-#define LPCM_BIG_ENDIAN   (1<<0)
-#define LPCM_LTE_ENDIAN   (1<<1)
-#define LPCM_SYS_ENDIAN   (1<<2)
+struct s_IFFHeader
+{
+	IFFType hid ;
+	uint32_t len ;
+	IFFType fid ;
+} ;
+typedef struct s_IFFHeader IFFHeader ;
+
+struct s_IFFChunk
+{
+	IFFType id ;
+	uint32_t len ;
+} ;
+typedef struct s_IFFChunk IFFChunk ;
+
+/*
+ * WARNING: this struct is not alignment-safe!
+ */
+struct s_AIFFCommon
+{
+	uint16_t numChannels ;
+	uint32_t numSampleFrames ;
+	uint16_t sampleSize ;
+	iext sampleRate ; /* Motorola 80-bit extended */
+} ;
+typedef struct s_AIFFCommon CommonChunk ;
+
+struct s_AIFFSound
+{
+	uint32_t offset ;
+	uint32_t blockSize ;
+} ;
+typedef struct s_AIFFSound SoundChunk ;
+
+struct s_Marker
+{
+	MarkerId id ;
+	uint32_t position ;
+	uint8_t markerNameLen ;
+	char markerName ;
+} ;
+typedef struct s_Marker Marker ;
+
+struct s_AIFFMarker
+{
+	uint16_t numMarkers ;
+	char markers ;
+} ;
+typedef struct s_AIFFMarker MarkerChunk ;
+
+struct s_AIFFLoop
+{
+	int16_t playMode ;
+	MarkerId beginLoop ;
+	MarkerId endLoop ;
+	uint16_t garbage ; /* not read (size=6 bytes) */
+} ;
+typedef struct s_AIFFLoop AIFFLoop ;
+
+
+struct s_Comment
+{
+	uint32_t timeStamp ;
+	MarkerId marker ;
+	uint16_t count ;
+	char text ;
+} ;
+typedef struct s_Comment Comment ;
+
+struct s_AIFFComment
+{
+	uint16_t numComments ;
+	char comments ;
+} ;
+typedef struct s_AIFFComment CommentChunk ;
 
 
 /* iff.c */
 int find_iff_chunk(IFFType chunk,FILE* fd,uint32_t* length) ;
-char* get_iff_attribute(AIFF_ReadRef r,IFFType attrib) ;
-int set_iff_attribute(AIFF_WriteRef w,IFFType attrib,char* str) ;
-int clone_iff_attributes(AIFF_WriteRef w, AIFF_ReadRef r) ;
+char* get_iff_attribute(AIFF_Ref r,IFFType attrib) ;
+int set_iff_attribute(AIFF_Ref w,IFFType attrib,char* str) ;
+int clone_iff_attributes(AIFF_Ref w, AIFF_Ref r) ;
 
 /* aifx.c */
-int get_aifx_format(AIFF_ReadRef r,uint32_t* nSamples,int* channels,
+int get_aifx_format(AIFF_Ref r,uint32_t* nSamples,int* channels,
 		int* samplingRate,int* bitsPerSample,int* segmentSize,
 		IFFType* audioFormat,int* flags) ;
-int read_aifx_marker(AIFF_ReadRef r,int* id,uint32_t* position,char** name) ;
-int get_aifx_instrument(AIFF_ReadRef r,Instrument* inpi) ;
-int do_aifx_prepare(AIFF_ReadRef r) ;
+int read_aifx_marker(AIFF_Ref r,int* id,uint32_t* position,char** name) ;
+int get_aifx_instrument(AIFF_Ref r,Instrument* inpi) ;
+int do_aifx_prepare(AIFF_Ref r) ;
 
 /* lpcm.c */
 void lpcm_swap_samples(int,int,void*,void*,int) ;
-size_t do_lpcm(AIFF_ReadRef r,void* buffer,size_t len) ;
-int lpcm_seek(AIFF_ReadRef r,uint32_t pos) ;
+size_t do_lpcm(AIFF_Ref r,void* buffer,size_t len) ;
+int lpcm_seek(AIFF_Ref r,uint32_t pos) ;
 
 /* ulaw.c */
-size_t do_ulaw(AIFF_ReadRef, void*, size_t) ;
-int ulaw_seek(AIFF_ReadRef, uint32_t) ;
+size_t do_ulaw(AIFF_Ref, void*, size_t) ;
+int ulaw_seek(AIFF_Ref, uint32_t) ;
 
 /* alaw.c */
-size_t do_alaw(AIFF_ReadRef, void*, size_t) ;
-int alaw_seek(AIFF_ReadRef, uint32_t) ;
+size_t do_alaw(AIFF_Ref, void*, size_t) ;
+int alaw_seek(AIFF_Ref, uint32_t) ;
 
 /* float32.c */
-size_t do_float32(AIFF_ReadRef, void*, size_t) ;
-int float32_seek(AIFF_ReadRef, uint32_t) ;
+size_t do_float32(AIFF_Ref, void*, size_t) ;
+int float32_seek(AIFF_Ref, uint32_t) ;
 
 /* extended.c */
 void ieee754_write_extended (double, uint8_t*);

@@ -1,6 +1,7 @@
 /*	$Id$ */
+
 /*-
- * Copyright (c) 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2006 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -68,7 +69,7 @@ ulawdec (uint8_t x)
 
 
 size_t
-do_ulaw (AIFF_ReadRef r, void *buffer, size_t len)
+do_ulaw (AIFF_Ref r, void *buffer, size_t len)
 {
 	size_t n, i, rem, bytesToRead, bytesRead;
 	uint8_t* bytes;
@@ -113,7 +114,7 @@ do_ulaw (AIFF_ReadRef r, void *buffer, size_t len)
 
 	
 int 
-ulaw_seek (AIFF_ReadRef r, uint32_t pos)
+ulaw_seek (AIFF_Ref r, uint32_t pos)
 {
 	long of;
 	uint32_t b;

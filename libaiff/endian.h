@@ -1,6 +1,7 @@
-/* $Id$ */
+/*	$Id$ */
+
 /*-
- * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2005, 2006 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -24,30 +25,24 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/*
- * ~~~~~~~~~ Implemented AIFF version: ~~~~~~~~~~~~
- * Audio Interchange File Format (AIFF) version 1.3
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- */
 
 
 /* === Endian-related stuff === */
 
-#ifndef WORDS_BIGENDIAN
+#define ARRANGE_ENDIAN_16(dat) ( (((dat) & 0xff00 ) >> 8 ) | (((dat) & 0x00ff ) << 8 ) )
+#define ARRANGE_ENDIAN_32(dat) ( (((dat) & 0xff000000 ) >> 24 ) | (((dat) & 0x00ff0000 ) >> 8 ) | (((dat) & 0x0000ff00 ) << 8 ) | (((dat) & 0x000000ff ) << 24 ) )
 
-#define ARRANGE_BE16(dat) ( (((dat) & 0xff00 ) >> 8 ) | (((dat) & 0x00ff ) << 8 ) )
-#define ARRANGE_BE32(dat) ( (((dat) & 0xff000000 ) >> 24 ) | (((dat) & 0x00ff0000 ) >> 8 ) | (((dat) & 0x0000ff00 ) << 8 ) | (((dat) & 0x000000ff ) << 24 ) )
-#define ARRANGE_LE16(dat) (dat)
-#define ARRANGE_LE32(dat) (dat)
-
-
+#ifdef WORDS_BIGENDIAN
+# define ARRANGE_BE16(dat) (dat)
+# define ARRANGE_BE32(dat) (dat)
+# define ARRANGE_LE16(dat) ARRANGE_ENDIAN_16(dat)
+# define ARRANGE_LE32(dat) ARRANGE_ENDIAN_32(dat)
 #else
+# define ARRANGE_BE16(dat) ARRANGE_ENDIAN_16(dat)
+# define ARRANGE_BE32(dat) ARRANGE_ENDIAN_32(dat)
+# define ARRANGE_LE16(dat) (dat)
+# define ARRANGE_LE32(dat) (dat)
+#endif /* WORDS_BIGENDIAN */
 
-#define ARRANGE_BE16(dat) (dat)
-#define ARRANGE_BE32(dat) (dat)
-#define ARRANGE_LE16(dat) ( (((dat) & 0xff00 ) >> 8 ) | (((dat) & 0x00ff ) << 8 ) )
-#define ARRANGE_LE32(dat) ( (((dat) & 0xff000000 ) >> 24 ) | (((dat) & 0x00ff0000 ) >> 8 ) | (((dat) & 0x0000ff00 ) << 8 ) | (((dat) & 0x000000ff ) << 24 ) )
-
-#endif
 
 

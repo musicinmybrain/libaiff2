@@ -1,6 +1,7 @@
 /*	$Id$ */
+
 /*-
- * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2005, 2006 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -37,16 +38,6 @@
 #include <sys/types.h>
 #endif
 
-#ifdef WORDS_BIGENDIAN
-#define NOT_HOST_ENDIAN		LPCM_LTE_ENDIAN
-#define ARRANGE_ENDIAN_16(x)	ARRANGE_LE16(x)
-#define ARRANGE_ENDIAN_32(x)	ARRANGE_LE32(x)
-#else
-#define NOT_HOST_ENDIAN		LPCM_BIG_ENDIAN
-#define ARRANGE_ENDIAN_16(x)	ARRANGE_BE16(x)
-#define ARRANGE_ENDIAN_32(x)	ARRANGE_BE32(x)
-#endif
-
 void 
 lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples)
 {
@@ -66,7 +57,7 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 
 	switch (segmentSize) {
 	case 2:
-		if (flags & NOT_HOST_ENDIAN) {
+		if (flags & LPCM_NEED_SWAP) {
 			for (i = 0; i < n; ++i)
 				words[i] = ARRANGE_ENDIAN_16(fwords[i]);
 		} else {
@@ -74,7 +65,7 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 		}
 		break;
 	case 3:
-		if (flags & NOT_HOST_ENDIAN) {
+		if (flags & LPCM_NEED_SWAP) {
 			n *= 3;
 			for (i = 0; i < n; i += 3) {
 				x = fubytes[i];
@@ -91,7 +82,7 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 		}
 		break;
 	case 4:
-		if (flags & NOT_HOST_ENDIAN) {
+		if (flags & LPCM_NEED_SWAP) {
 			for (i = 0; i < n; ++i)
 				dwords[i] = ARRANGE_ENDIAN_32(fdwords[i]);
 		} else {
@@ -104,7 +95,7 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 }
 
 size_t 
-do_lpcm(AIFF_ReadRef r, void *buffer, size_t len)
+do_lpcm(AIFF_Ref r, void *buffer, size_t len)
 {
 	int n;
 	uint32_t clen;
@@ -138,7 +129,7 @@ do_lpcm(AIFF_ReadRef r, void *buffer, size_t len)
 }
 
 int 
-lpcm_seek(AIFF_ReadRef r, uint32_t pos)
+lpcm_seek(AIFF_Ref r, uint32_t pos)
 {
 	long of;
 	uint32_t b;
