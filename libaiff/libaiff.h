@@ -63,7 +63,6 @@ struct s_AIFF_Ref {
 	int nMarkers;
 	int nChannels;
 	int markerPos;
-	FILE* fd;
 	uint32_t len;
 	uint32_t soundLen;
 	uint32_t pos;
