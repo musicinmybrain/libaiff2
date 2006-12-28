@@ -34,7 +34,7 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
-static AIFF_Ref AIFF_ReadOpen (const char *);
+static AIFF_Ref AIFF_ReadOpen (const char *, int flags);
 static AIFF_Ref AIFF_WriteOpen (const char *, int);
 static void AIFF_ReadClose (AIFF_Ref);
 static int AIFF_WriteClose (AIFF_Ref);
@@ -48,7 +48,7 @@ AIFF_OpenFile(const char *file, int flags)
 	AIFF_Ref ref = NULL;
 	
 	if (flags & F_RDONLY) {
-		ref = AIFF_ReadOpen(file);
+		ref = AIFF_ReadOpen(file, flags);
 	} else if (flags & F_WRONLY) {
 		ref = AIFF_WriteOpen(file, flags);
 	}
@@ -76,7 +76,7 @@ AIFF_CloseFile(AIFF_Ref ref)
 }
 
 static AIFF_Ref 
-AIFF_ReadOpen(const char *file)
+AIFF_ReadOpen(const char *file, int flags)
 {
 	AIFF_Ref r;
 	IFFHeader hdr;
@@ -143,7 +143,7 @@ AIFF_ReadOpen(const char *file)
 	r->stat = 0;
 	r->buffer = NULL;
 	r->buflen = 0;
-	r->flags = F_RDONLY;
+	r->flags |= F_RDONLY | flags;
 
 	return r;
 }
