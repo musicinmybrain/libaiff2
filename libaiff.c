@@ -578,7 +578,7 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 			encNameLen = 255;
 		}
 		ckLen += encNameLen + 1; /* length byte */
-		if (encNameLen & 1)
+		if (!(encNameLen & 1))
 			++ckLen; /* pad byte */
 	}
 	
@@ -622,7 +622,7 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 		    fwrite(encName, 1, (size_t) encNameLen, w->fd) < (size_t) encNameLen) {
 			return -1;
 		}
-		if (encNameLen & 1)
+		if (!(encNameLen & 1))
 			fputc(0, w->fd); /* pad byte */
 	}
 		    
@@ -971,8 +971,8 @@ AIFF_WriteMarker(AIFF_Ref w, uint32_t position, char *name)
 	if (name) {
 		l = strlen(name);
 		if (l < 255) {
-			/* Length must be even */
-			if (l & 0x1)
+			/* Total length (count + string) must be even */
+			if (!(l & 1))
 				pad = 1;
 			m.markerNameLen = (uint8_t) l;
 			m.markerName = name[0];

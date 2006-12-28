@@ -193,9 +193,9 @@ read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 			return -1;
 		memset(str, 0, z);	/* '\0' */
 		z -= 2;
-		/* Total length must be even */
-		if (!(z & 0x1))
-			++z;
+		/* Total (count + string) length must be even */
+		if (!(m.markerNameLen & 1))
+			++z; /* read the extra pad byte */
 		str[0] = m.markerName;
 		if (z) {
 			if (fread(str + 1, 1, z, r->fd) < z) {
