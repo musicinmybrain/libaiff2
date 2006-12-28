@@ -55,6 +55,12 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 	/* 24 bit */
 	uint8_t x, y, z;
 
+	/*
+	 * Do we really need to do something?
+	 */
+	if (from == to && !(flags & LPCM_NEED_SWAP))
+		return;
+
 	switch (segmentSize) {
 	case 2:
 		if (flags & LPCM_NEED_SWAP) {

@@ -27,12 +27,12 @@
  */
 
 #define LIBAIFF 1
-#include <libaiff/libaiff.h>
-#include <libaiff/endian.h>
-#include "private.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <libaiff/libaiff.h>
+#include <libaiff/endian.h>
+#include "private.h"
 
 static AIFF_Ref AIFF_ReadOpen (const char *);
 static AIFF_Ref AIFF_WriteOpen (const char *, int);
@@ -40,7 +40,7 @@ static void AIFF_ReadClose (AIFF_Ref);
 static int AIFF_WriteClose (AIFF_Ref);
 static void* InitBuffer (AIFF_Ref, size_t);
 static void DestroyBuffer (AIFF_Ref);
-static int AIFF_WriteSamplesNoSwap (AIFF_Ref, void *, size_t);
+static int DoWriteSamples (AIFF_Ref, void *, size_t, int);
 
 AIFF_Ref
 AIFF_OpenFile(const char *file, int flags)
@@ -638,40 +638,34 @@ DestroyBuffer(AIFF_Ref w)
 	return;
 }
 
-int 
-AIFF_WriteSamples(AIFF_Ref w, void *samples, size_t len)
+static int 
+DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 {
 	int n;
+	uint32_t sampleBytes;
 	void *buffer;
-
+	
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
 	if (w->stat != 2)
 		return 0;
-
-	buffer = InitBuffer(w, len);
-	if (!buffer)
-		return -1;
 
 	n = (int) len;
 	if (n % (w->segmentSize) != 0)
 		return 0;
 	n /= w->segmentSize;
 
+	if (readOnlyBuf) {
+		buffer = InitBuffer(w, len);
+		if (buffer == NULL)
+			return -1;
+	} else {
+		buffer = samples;
+	}
+
 	lpcm_swap_samples(w->segmentSize, LPCM_BIG_ENDIAN, samples, buffer, n);
 
-	return AIFF_WriteSamplesNoSwap(w, buffer, len);
-}
-
-static int 
-AIFF_WriteSamplesNoSwap(AIFF_Ref w, void *samples, size_t len)
-{
-	uint32_t sampleBytes;
-
-	if (w->stat != 2)
-		return 0;
-
-	if (fwrite(samples, 1, len, w->fd) < len) {
+	if (fwrite(buffer, 1, len, w->fd) < len) {
 		return -1;
 	}
 	sampleBytes = (uint32_t) len;
@@ -681,46 +675,40 @@ AIFF_WriteSamplesNoSwap(AIFF_Ref w, void *samples, size_t len)
 	return 1;
 }
 
-/*
- * XXX: what about using lpcm_swap_samples() ?
- */
+int
+AIFF_WriteSamples(AIFF_Ref w, void *samples, size_t len)
+{
+	return DoWriteSamples(w, samples, len, 1);
+}
+
+
 int 
 AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int nsamples)
 {
 	register int i, j;
 	register int n = nsamples;
 	void *buffer;
-	int res;
-	int segmentSize;
 	size_t len;
 	int32_t cursample;
 	int32_t *dwords;
 	int16_t *words;
 	int8_t *sbytes;
-	uint8_t *inbytes;
-	uint8_t *outbytes;
-	uint8_t x, y, z;
+	uint8_t *inbytes, *outbytes;
 
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
 	if (w->stat != 2 || w->segmentSize == 0 || n < 1) {
-		DestroyBuffer(w);
 		return -1;
 	}
-	segmentSize = w->segmentSize;
-
-	len = (size_t) n;
-	len *= segmentSize;
+	len = (size_t) n * w->segmentSize;
 
 	buffer = InitBuffer(w, len);
 	if (!buffer)
 		return -1;
 
-	switch (segmentSize) {
+	switch (w->segmentSize) {
 	case 4:
-		dwords = (int32_t *) buffer;
-		for (i = 0; i < n; ++i)
-			dwords[i] = ARRANGE_BE32(samples[i]);
+		memcpy(buffer, samples, n << 2); /* n * 4 */
 		break;
 	case 3:
 		inbytes = (uint8_t *) samples;
@@ -729,48 +717,36 @@ AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int nsamples)
 		n *= 3;
 		for (i = 0; i < n; i += 3) {
 #ifdef WORDS_BIGENDIAN
-			x = inbytes[j++];
-			y = inbytes[j++];
-			z = inbytes[j++];
+			outbytes[i + 0] = inbytes[j++];
+			outbytes[i + 1] = inbytes[j++];
+			outbytes[i + 2] = inbytes[j++];
 			j++;
 #else
 			j++;
-			z = inbytes[j++];
-			y = inbytes[j++];
-			x = inbytes[j++];
+			outbytes[i + 0] = inbytes[j++];
+			outbytes[i + 1] = inbytes[j++];
+			outbytes[i + 2] = inbytes[j++];
 #endif
-			outbytes[i] = x;
-			outbytes[i + 1] = y;
-			outbytes[i + 2] = z;
 		}
 		n /= 3;
 		break;
 	case 2:
 		words = (int16_t *) buffer;
 		for (i = 0; i < n; ++i) {
-			cursample = samples[i];
-			cursample >>= 16;
+			cursample = samples[i] >> 16;
 			words[i] = (int16_t) cursample;
-			words[i] = ARRANGE_BE16(words[i]);
 		}
 		break;
 	case 1:
 		sbytes = (int8_t *) buffer;
 		for (i = 0; i < n; ++i) {
-			cursample = samples[i];
-			cursample >>= 24;
+			cursample = samples[i] >> 24;
 			sbytes[i] = (int8_t) cursample;
 		}
 		break;
 	}
 
-	res = AIFF_WriteSamplesNoSwap(w, buffer, len);
-
-	if (res < 1) {
-		DestroyBuffer(w);
-		return -1;
-	}
-	return 1;
+	return DoWriteSamples(w, buffer, len, 0);
 }
 
 /*
