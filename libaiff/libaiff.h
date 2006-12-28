@@ -155,6 +155,23 @@ typedef struct s_Instrument Instrument ;
 /* == Function prototypes == */
 AIFF_Ref AIFF_OpenFile(const char *, int) ;
 int AIFF_CloseFile(AIFF_Ref) ;
+char* AIFF_GetAttribute(AIFF_Ref,IFFType) ;
+int AIFF_GetInstrumentData(AIFF_Ref,Instrument*) ;
+size_t AIFF_ReadSamples(AIFF_Ref,void*,size_t) ;
+int AIFF_Seek(AIFF_Ref,uint32_t) ;
+int AIFF_ReadSamples32Bit(AIFF_Ref,int32_t*,int) ;
+int AIFF_ReadMarker(AIFF_Ref,int*,uint32_t*,char**) ;
+int AIFF_GetAudioFormat(AIFF_Ref,uint32_t*,int*,double*,int*,int*) ;
+int AIFF_SetAttribute(AIFF_Ref,IFFType,char*) ;
+int AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers) ;
+int AIFF_SetAudioFormat(AIFF_Ref,int,double,int ) ;
+int AIFF_StartWritingSamples(AIFF_Ref) ;
+int AIFF_WriteSamples(AIFF_Ref,void*,size_t) ;
+int AIFF_WriteSamples32Bit(AIFF_Ref,int32_t*,int) ;
+int AIFF_EndWritingSamples(AIFF_Ref) ;
+int AIFF_StartWritingMarkers(AIFF_Ref) ;
+int AIFF_WriteMarker(AIFF_Ref,uint32_t,char*) ;
+int AIFF_EndWritingMarkers(AIFF_Ref) ;
 
 #if !defined(LIBAIFF) && !defined(LIBAIFF_NOCOMPAT)
 #define AIFF_ReadRef		AIFF_Ref
@@ -163,25 +180,8 @@ int AIFF_CloseFile(AIFF_Ref) ;
 #define AIFF_WriteOpen(f)	AIFF_OpenFile((f), F_WRONLY)
 #define AIFF_Close(f)		(void) AIFF_CloseFile(f)
 #define AIFF_WriteClose(f)	AIFF_CloseFile(f)
+#define AIFF_SetSoundFormat(r,a,s,b) AIFF_SetAudioFormat((r),(a),(double)(s),(b))
 #endif /* !LIBAIFF && !LIBAIFF_NOCOMPAT */
-
-char* AIFF_GetAttribute(AIFF_Ref,IFFType) ;
-int AIFF_GetInstrumentData(AIFF_Ref,Instrument*) ;
-size_t AIFF_ReadSamples(AIFF_Ref,void*,size_t) ;
-int AIFF_Seek(AIFF_Ref,uint32_t) ;
-int AIFF_ReadSamples32Bit(AIFF_Ref,int32_t*,int) ;
-int AIFF_ReadMarker(AIFF_Ref,int*,uint32_t*,char**) ;
-int AIFF_GetSoundFormat(AIFF_Ref,uint32_t*,int*,int*,int*,int*) ;
-int AIFF_SetAttribute(AIFF_Ref,IFFType,char*) ;
-int AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers) ;
-int AIFF_SetSoundFormat(AIFF_Ref,int,int,int ) ;
-int AIFF_StartWritingSamples(AIFF_Ref) ;
-int AIFF_WriteSamples(AIFF_Ref,void*,size_t) ;
-int AIFF_WriteSamples32Bit(AIFF_Ref,int32_t*,int) ;
-int AIFF_EndWritingSamples(AIFF_Ref) ;
-int AIFF_StartWritingMarkers(AIFF_Ref) ;
-int AIFF_WriteMarker(AIFF_Ref,uint32_t,char*) ;
-int AIFF_EndWritingMarkers(AIFF_Ref) ;
 
 #ifndef LIBAIFF
 

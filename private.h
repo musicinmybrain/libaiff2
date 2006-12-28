@@ -145,7 +145,7 @@ int clone_iff_attributes(AIFF_Ref w, AIFF_Ref r) ;
 
 /* aifx.c */
 int get_aifx_format(AIFF_Ref r,uint32_t* nSamples,int* channels,
-		int* samplingRate,int* bitsPerSample,int* segmentSize,
+		double* samplingRate,int* bitsPerSample,int* segmentSize,
 		IFFType* audioFormat,int* flags) ;
 int read_aifx_marker(AIFF_Ref r,int* id,uint32_t* position,char** name) ;
 int get_aifx_instrument(AIFF_Ref r,Instrument* inpi) ;

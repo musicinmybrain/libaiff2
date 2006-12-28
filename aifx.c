@@ -36,7 +36,7 @@
 
 int 
 get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
-    int *samplingRate, int *bitsPerSample, int *segmentSize,
+    double *samplingRate, int *bitsPerSample, int *segmentSize,
     IFFType * audioFormat, int *flags)
 {
 	int bps;
@@ -69,7 +69,7 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 	if (channels)
 		*channels = (int) p.numChannels;
 	if (samplingRate)
-		*samplingRate = (int) sRate;
+		*samplingRate = sRate;
 	if (bitsPerSample)
 		*bitsPerSample = (int) p.sampleSize;
 	bps = (int) (p.sampleSize);

@@ -197,8 +197,8 @@ AIFF_GetInstrumentData(AIFF_Ref r, Instrument * i)
 }
 
 int 
-AIFF_GetSoundFormat(AIFF_Ref r, uint32_t * nSamples, int *channels,
-    int *samplingRate, int *bitsPerSample, int *segmentSize)
+AIFF_GetAudioFormat(AIFF_Ref r, uint32_t * nSamples, int *channels,
+    double *samplingRate, int *bitsPerSample, int *segmentSize)
 {
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
@@ -544,10 +544,8 @@ AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers)
 }
 
 int 
-AIFF_SetSoundFormat(AIFF_Ref w, int channels, int samplingRate,
-    int bitsPerSample)
+AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 {
-	double sRate;
 	uint8_t buffer[10];
 	CommonChunk c;
 	IFFChunk chk;
@@ -596,7 +594,6 @@ AIFF_SetSoundFormat(AIFF_Ref w, int channels, int samplingRate,
 	c.numSampleFrames = 0;
 	c.sampleSize = (uint16_t) bitsPerSample;
 	c.sampleSize = ARRANGE_BE16(c.sampleSize);
-	sRate = (double) samplingRate;
 	ieee754_write_extended(sRate, buffer);
 
 	/*
