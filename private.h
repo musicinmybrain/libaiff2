@@ -58,7 +58,7 @@ void AIFFAssertionFailed (const char*, int);
 #define AIFF_COMT 0x434f4d54
 
 /* Standards & specifications */
-#define AIFC_STD_DRAFT_082691	2726318400
+#define AIFC_STD_DRAFT_082691	2726318400U
 
 struct s_IFFHeader
 {
