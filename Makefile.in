@@ -10,7 +10,8 @@ CFLAGS += -Wextra -Wmissing-field-initializers -Wno-discard-qual
 
 prefix = @prefix@
 
-objs = iff.o aifx.o lpcm.o ulaw.o alaw.o float32.o libaiff.o extended.o
+objs = iff.o aifx.o lpcm.o ulaw.o alaw.o \
+       float32.o libaiff.o extended.o pascal.o
 
 all: libaiff.a
 

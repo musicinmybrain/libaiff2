@@ -173,4 +173,10 @@ int float32_seek(AIFF_Ref, uint32_t) ;
 void ieee754_write_extended (double, uint8_t*);
 double ieee754_read_extended (uint8_t*);
 
+/* pascal.c */
+int PASCALInGetLength (FILE *);
+char * PASCALInRead (FILE *, int *);
+int PASCALOutGetLength (char *);
+int PASCALOutWrite (FILE *, char *);
+
 

@@ -1,7 +1,7 @@
 /*	$Id$ */
 
 /*-
- * Copyright (c) 2005, 2006 Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2005, 2006 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -154,8 +154,6 @@ read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 	uint16_t nMarkers;
 	uint32_t cklen;
 	int n;
-	size_t z;
-	char *str;
 	Marker m;
 
 	if (r->stat != 4) {
@@ -175,37 +173,21 @@ read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 		r->stat = 0;
 		return 0;
 	}
-	if (fread(&(m.id), 1, 2, r->fd) < 2
-	    || fread(&(m.position), 1, 4, r->fd) < 4
-	    || fread(&(m.markerNameLen), 1, 1, r->fd) < 1
-	    || fread(&(m.markerName), 1, 1, r->fd) < 1)
+	if (fread(&(m.id), 1, 2, r->fd) < 2 || 
+	    fread(&(m.position), 1, 4, r->fd) < 4)
 		return -1;
-
 	m.id = ARRANGE_BE16(m.id);
 	m.position = ARRANGE_BE32(m.position);
-
-	if (m.markerNameLen > 0) {
-		z = (size_t) (m.markerNameLen);
-		/* Allocate memory for string + '\0' */
-		++z;
-		str = malloc(z);
-		if (!str)
+	
+	if (name != NULL) {
+		int l;
+		*name = PASCALInRead(r->fd, &l);
+	} else {
+		int l;
+		l = PASCALInGetLength(r->fd);
+		if (fseek(r->fd, (long) l, SEEK_CUR) < 0)
 			return -1;
-		memset(str, 0, z);	/* '\0' */
-		z -= 2;
-		/* Total (count + string) length must be even */
-		if (!(m.markerNameLen & 1))
-			++z; /* read the extra pad byte */
-		str[0] = m.markerName;
-		if (z) {
-			if (fread(str + 1, 1, z, r->fd) < z) {
-				free(str);
-				return -1;
-			}
-		}
-		*name = str;
-	} else
-		*name = NULL;
+	}
 
 	*id = (int) m.id;
 	*position = m.position;

@@ -561,25 +561,19 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 		return 0;
 
 	if (w->flags & F_AIFC) {
+		/*
+		 * On AIFF-C we need to write
+		 * the encoding plus a description string
+		 * in PASCAL-style format
+		 */
 		ckLen += 4;
 		if (w->flags & LPCM_LTE_ENDIAN)
 			enc = AUDIO_FORMAT_sowt;
 		else
 			enc = AUDIO_FORMAT_LPCM;
 
-		/*
-		 * Get the encoding name to write as
-		 * a PASCAL string (pstring) and set
-		 * the ckLen appropriately
-		 */
 		encName = get_aifx_enc_name(enc);
-		encNameLen = strlen(encName);
-		if (encNameLen > 255) { /* this should not happen :-) */
-			encNameLen = 255;
-		}
-		ckLen += encNameLen + 1; /* length byte */
-		if (!(encNameLen & 1))
-			++ckLen; /* pad byte */
+		ckLen += PASCALOutGetLength(encName);
 	}
 	
 	chk.id = ARRANGE_BE32(AIFF_COMM);
@@ -615,15 +609,10 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	 * (encstring is a PASCAL string)
 	 */
 	if (w->flags & F_AIFC) {
-		uint8_t b = encNameLen;
-		
-		if (fwrite(&enc, 1, 4, w->fd) < 4 || 
-		    fwrite(&b, 1, 1, w->fd) < 1 || /* length byte */
-		    fwrite(encName, 1, (size_t) encNameLen, w->fd) < (size_t) encNameLen) {
+		if (fwrite(&enc, 1, 4, w->fd) != 4)
 			return -1;
-		}
-		if (!(encNameLen & 1))
-			fputc(0, w->fd); /* pad byte */
+		if (PASCALOutWrite(w->fd, encName) < 2)
+			return -1;
 	}
 		    
 	/*
@@ -950,8 +939,6 @@ int
 AIFF_WriteMarker(AIFF_Ref w, uint32_t position, char *name)
 {
 	Marker m;
-	int l = 0;
-	int pad = 0;
 
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
@@ -965,42 +952,24 @@ AIFF_WriteMarker(AIFF_Ref w, uint32_t position, char *name)
 	m.id = (MarkerId) (w->markerPos + 1);
 	m.id = ARRANGE_BE16(m.id);
 	m.position = ARRANGE_BE32(position);
-	m.markerNameLen = 0;
-	m.markerName = '\0';
+
+	if (fwrite(&(m.id), 1, 2, w->fd) < 2 || 
+	    fwrite(&(m.position), 1, 4, w->fd) < 4)
+		return -1;
+	w->len += 6;
 
 	if (name) {
-		l = strlen(name);
-		if (l < 255) {
-			/* Total length (count + string) must be even */
-			if (!(l & 1))
-				pad = 1;
-			m.markerNameLen = (uint8_t) l;
-			m.markerName = name[0];
-		} else
-			l = 0;
-	}
-	if (fwrite(&(m.id), 1, 2, w->fd) < 2
-	    || fwrite(&(m.position), 1, 4, w->fd) < 4
-	    || fwrite(&(m.markerNameLen), 1, 1, w->fd) < 1
-	    || fwrite(&(m.markerName), 1, 1, w->fd) < 1) {
-		return -1;
-	}
-	w->len += 8;
-	
-	/*
-	 * Write the remaining of the string.
-	 * If we have to pad, do not decrement the number of 
-	 * bytes to be written so we'll write the terminating NUL too
-	 * which will serve as a 'pad byte'.
-	 */
-	if (l && !pad)
-		--l;
-	if (l > 0) {
-		if (fwrite(name + 1, 1, l, w->fd) < (size_t) l) {
+		int l;
+
+		if ((l = PASCALOutWrite(w->fd, name)) < 2)
 			return -1;
-		}
-		w->len += (uint32_t) l;
+		w->len += l;
+	} else {
+		if (fwrite("\0\0", 1, 2, w->fd) != 2)
+			return -1;
+		w->len += 2;
 	}
+
 	++(w->markerPos);
 	return 1;
 }
