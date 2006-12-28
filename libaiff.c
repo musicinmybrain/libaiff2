@@ -53,9 +53,6 @@ AIFF_OpenFile(const char *file, int flags)
 		ref = AIFF_WriteOpen(file, flags);
 	}
 
-	if (ref)
-		ref->flags |= flags;
-
 	return ref;
 }
 
@@ -146,7 +143,7 @@ AIFF_ReadOpen(const char *file)
 	r->stat = 0;
 	r->buffer = NULL;
 	r->buflen = 0;
-	r->flags |= F_RDONLY;
+	r->flags = F_RDONLY;
 
 	return r;
 }
@@ -427,6 +424,7 @@ AIFF_WriteOpen(const char *file, int flags)
 	
 	w = malloc(kAIFFRefSize);
 	if (!w) {
+err0:
 		return NULL;
 	}
 
@@ -435,23 +433,65 @@ AIFF_WriteOpen(const char *file, int flags)
 	 */
 	w->fd = fopen(file, "w+b");
 	if (w->fd == NULL) {
-		return NULL;
+err1:
+		free(w);
+		goto err0;
 	}
 	hdr.hid = ARRANGE_BE32(AIFF_FORM);
 	w->len = 4;
 	hdr.len = ARRANGE_BE32(w->len);
-	hdr.fid = ARRANGE_BE32(AIFF_AIFF);
+	if (flags & F_AIFC)
+		hdr.fid = ARRANGE_BE32(AIFF_AIFC);
+	else
+		hdr.fid = ARRANGE_BE32(AIFF_AIFF);
 
 	if (fwrite(&hdr, 1, 12, w->fd) < 12) {
+err2:
 		fclose(w->fd);
-		return NULL;
+		goto err1;
 	}
 	w->stat = 0;
 	w->segmentSize = 0;
 	w->buffer = NULL;
 	w->buflen = 0;
 	w->tics = 0;
-	w->flags = F_WRONLY;
+
+	/*
+	 * If writing AIFF-C, write the required FVER chunk
+	 */
+	if (flags & F_AIFC) {
+		IFFChunk chk;
+		uint32_t vers;
+		ASSERT(sizeof(IFFChunk) == 8);
+
+		chk.id = ARRANGE_BE32(AIFF_FVER);
+		chk.len = ARRANGE_BE32(4);
+		vers = ARRANGE_BE32(AIFC_STD_DRAFT_082691);
+
+		if (fwrite(&chk, 1, 8, w->fd) < 8 || 
+		    fwrite(&vers, 1, 4, w->fd) < 4) {
+			goto err2;
+		}
+
+		w->len += 12;
+
+		/*
+		 * If no endianness specified for AIFF-C,
+		 * default to big endian
+		 */
+		if (!(flags & (LPCM_LTE_ENDIAN | LPCM_BIG_ENDIAN))) {
+			flags |= LPCM_BIG_ENDIAN;
+		}
+	} else {
+		/*
+		 * If writing regular AIFF, make sure we
+		 * write big-endian data
+		 */
+		flags &= ~LPCM_LTE_ENDIAN;
+		flags |= LPCM_BIG_ENDIAN;
+	}
+
+	w->flags = F_WRONLY | flags;
 
 	return w;
 }
@@ -511,6 +551,10 @@ AIFF_SetSoundFormat(AIFF_Ref w, int channels, int samplingRate,
 	uint8_t buffer[10];
 	CommonChunk c;
 	IFFChunk chk;
+	IFFType enc;
+	uint32_t ckLen = 18;
+	char* encName = NULL;
+	int encNameLen;
 	ASSERT(sizeof(IFFChunk) == 8);
 
 	if (!w || !(w->flags & F_WRONLY))
@@ -518,8 +562,30 @@ AIFF_SetSoundFormat(AIFF_Ref w, int channels, int samplingRate,
 	if (w->stat != 0)
 		return 0;
 
+	if (w->flags & F_AIFC) {
+		ckLen += 4;
+		if (w->flags & LPCM_LTE_ENDIAN)
+			enc = AUDIO_FORMAT_sowt;
+		else
+			enc = AUDIO_FORMAT_LPCM;
+
+		/*
+		 * Get the encoding name to write as
+		 * a PASCAL string (pstring) and set
+		 * the ckLen appropriately
+		 */
+		encName = get_aifx_enc_name(enc);
+		encNameLen = strlen(encName);
+		if (encNameLen > 255) { /* this should not happen :-) */
+			encNameLen = 255;
+		}
+		ckLen += encNameLen + 1; /* length byte */
+		if (encNameLen & 1)
+			++ckLen; /* pad byte */
+	}
+	
 	chk.id = ARRANGE_BE32(AIFF_COMM);
-	chk.len = ARRANGE_BE32(18);
+	chk.len = ARRANGE_BE32(ckLen);
 
 	if (fwrite(&chk, 1, 8, w->fd) < 8) {
 		return -1;
@@ -546,6 +612,23 @@ AIFF_SetSoundFormat(AIFF_Ref w, int channels, int samplingRate,
 	    || fwrite(buffer, 1, 10, w->fd) < 10) {
 		return -1;
 	}
+
+	/*
+	 * On AIFF-C, write the encoding + encstring
+	 * (encstring is a PASCAL string)
+	 */
+	if (w->flags & F_AIFC) {
+		uint8_t b = encNameLen;
+		
+		if (fwrite(&enc, 1, 4, w->fd) < 4 || 
+		    fwrite(&b, 1, 1, w->fd) < 1 || /* length byte */
+		    fwrite(encName, 1, encNameLen, w->fd) < encNameLen) {
+			return -1;
+		}
+		if (encNameLen & 1)
+			fputc(0, w->fd); /* pad byte */
+	}
+		    
 	/*
 	 * We need to return here later
 	 * (to update the 'numSampleFrames'),
@@ -556,9 +639,9 @@ AIFF_SetSoundFormat(AIFF_Ref w, int channels, int samplingRate,
 	 */
 	w->len += 8;
 	w->commonOffSet = w->len;
-	w->len += 18;
+	w->len += ckLen;
 	w->segmentSize = bitsPerSample >> 3;
-	if (bitsPerSample & 0x7)
+	if (bitsPerSample & 7)
 		++(w->segmentSize);
 	w->stat = 1;
 
@@ -663,7 +746,7 @@ DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 		buffer = samples;
 	}
 
-	lpcm_swap_samples(w->segmentSize, LPCM_BIG_ENDIAN, samples, buffer, n);
+	lpcm_swap_samples(w->segmentSize, w->flags, samples, buffer, n);
 
 	if (fwrite(buffer, 1, len, w->fd) < len) {
 		return -1;
@@ -690,7 +773,6 @@ AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int nsamples)
 	void *buffer;
 	size_t len;
 	int32_t cursample;
-	int32_t *dwords;
 	int16_t *words;
 	int8_t *sbytes;
 	uint8_t *inbytes, *outbytes;

@@ -49,12 +49,16 @@ void AIFFAssertionFailed (const char*, int);
 /* OSTypes */
 #define AIFF_FORM 0x464f524d
 #define AIFF_AIFF 0x41494646
+#define AIFF_AIFC 0x41494643
 #define AIFF_FVER 0x46564552
 #define AIFF_COMM 0x434f4d4d
 #define AIFF_SSND 0x53534e44
 #define AIFF_MARK 0x4d41524b
 #define AIFF_INST 0x494e5354
 #define AIFF_COMT 0x434f4d54
+
+/* Standards & specifications */
+#define AIFC_STD_DRAFT_082691	2726318400
 
 struct s_IFFHeader
 {
@@ -146,6 +150,7 @@ int get_aifx_format(AIFF_Ref r,uint32_t* nSamples,int* channels,
 int read_aifx_marker(AIFF_Ref r,int* id,uint32_t* position,char** name) ;
 int get_aifx_instrument(AIFF_Ref r,Instrument* inpi) ;
 int do_aifx_prepare(AIFF_Ref r) ;
+char * get_aifx_enc_name(IFFType) ;
 
 /* lpcm.c */
 void lpcm_swap_samples(int,int,void*,void*,int) ;

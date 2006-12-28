@@ -316,3 +316,32 @@ do_aifx_prepare(AIFF_Ref r)
 
 	return 1;
 }
+
+struct s_encName {
+	IFFType enc;
+	const char *name;
+};
+#define kNumEncs	6
+static struct s_encName encNames[kNumEncs] = {
+	{AUDIO_FORMAT_LPCM, "Signed big-endian linear PCM"},
+	{AUDIO_FORMAT_twos, "Signed big-endian linear PCM"},
+	{AUDIO_FORMAT_sowt, "Signed little-endian linear PCM"},
+	{AUDIO_FORMAT_FL32, "Signed big-endian IEEE-754 single-precision floating point PCM"},
+	{AUDIO_FORMAT_ULAW, "Signed logarithmic 8-bit mu-Law PCM"},
+	{AUDIO_FORMAT_ALAW, "Signed logarithmic 8-bit A-Law PCM"}
+};
+
+char *
+get_aifx_enc_name (IFFType enc)
+{
+	int i;
+	struct s_encName* e = encNames;
+
+	for (i = 0; i < kNumEncs; ++i) {
+		if (e[i].enc == enc)
+			return (char *) (e[i].name);
+	}
+
+	return (NULL);
+}
+
