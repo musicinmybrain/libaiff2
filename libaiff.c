@@ -552,7 +552,6 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	IFFType enc;
 	uint32_t ckLen = 18;
 	char* encName = NULL;
-	int encNameLen = 0;
 	ASSERT(sizeof(IFFChunk) == 8);
 
 	if (!w || !(w->flags & F_WRONLY))
