@@ -188,6 +188,9 @@ int AIFF_EndWritingMarkers(AIFF_Ref) ;
 #ifdef HAVE_BZERO
 #undef HAVE_BZERO
 #endif
+#ifdef HAVE_ABORT
+#undef HAVE_ABORT
+#endif
 #ifdef HAVE_INTTYPES_H
 #undef HAVE_INTTYPES_H
 #endif
