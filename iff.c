@@ -34,6 +34,15 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
+/*
+ * private flags for this module
+ */
+#define SSND_REACHED	(1<<29)
+
+/*
+ * Find an IFF chunk. Return 1 (found) or 0 (not found / error).
+ * If found, update 'length' to be the chunk length.
+ */
 int 
 find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 {
@@ -45,10 +54,31 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 	ASSERT(sizeof(IFFChunk) == 8);
 	chunk = ARRANGE_BE32(chunk);
 
-	if (!(r->flags & F_NOTSEEKABLE) && 
-	    fseek(r->fd, 12, SEEK_SET) < 0) {
-		return (0);
+	/*
+	 * If possible, start the search at the first chunk
+	 */
+	if (!(r->flags & F_NOTSEEKABLE)) {
+		if (fseek(r->fd, 12, SEEK_SET) < 0)
+			return (0);
+	} else {
+		/*
+		 * If we can't seek, don't search beyond
+		 * the SSND chunk
+		 */
+		if (r->flags & SSND_REACHED) {
+			if (chunk == AIFF_SSND) {
+				r->flags &= ~SSND_REACHED;
+				*length = r->soundLen;
+				return (1);
+			} else {
+				return (0);
+			}
+		}
 	}
+
+	/*
+	 * Navigate through the file to find the chunk
+	 */
 	for (;;) {
 		if (fread(d.buf, 1, 8, r->fd) < 8)
 			return (0);
@@ -56,31 +86,30 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 		d.chk.len = ARRANGE_BE32(d.chk.len);
 		if (d.chk.id == chunk) {
 			*length = d.chk.len;
-			break;
+			return (1);
 		} else {
+			uint32_t l = d.chk.len;
+
 			/*
-			 * In Electronic Arts IFF files (like AIFF)
-			 * chunk start positions must be even.
+			 * In IFF files chunk start offsets must be even.
 			 */
-			if (d.chk.len & 1)	/* if( *length % 2 != 0 ) */
-				++(d.chk.len);
+			if (l & 1)	/* if( l % 2 != 0 ) */
+				++l;
 
 			/* skip this chunk */
 			if (!(r->flags & F_NOTSEEKABLE)) {
-				if (fseek(r->fd, (long) d.chk.len, SEEK_CUR) == -1) {
+				if (fseek(r->fd, (long) l, SEEK_CUR) < 0) {
 					return (0);
 				}
 			} else {
 				int count;
 
-				/*
-				 * In not-seekable mode, don't skip
-				 * the SSND chunk. Otherwise we 
-				 * couldn't get it back later.
-				 */
-				if (d.chk.id == ARRANGE_BE32(AIFF_SSND))
+				if (d.chk.id == ARRANGE_BE32(AIFF_SSND)) {
+					r->flags |= SSND_REACHED;
+					r->soundLen = d.chk.len;
 					return (0);
-				count = (int) d.chk.len;
+				}
+				count = (int) l;
 				while (count-- > 0) {
 					if (getc(r->fd) < 0)
 						return (0);
@@ -90,7 +119,8 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 
 	}
 
-	return (1);
+	/* NOTREACHED */
+	return (0);
 }
 
 char *

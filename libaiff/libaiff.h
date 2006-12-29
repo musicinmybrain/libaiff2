@@ -110,7 +110,13 @@ static char AnnoID[4] = {'O', 'N', 'N', 'A'};
 #endif /* WORDS_BIGENDIAN */
 #endif /* !LIBAIFF && !LIBAIFF_NOCOMPAT */
 
-/* Flags */
+/*
+ * Flags.
+ * Flags which start with the F_ prefix are
+ * user-specified and are documented.
+ * Flags from (1<<20) to (1<<29) are reserved
+ * to module private flags.
+ */
 #define F_RDONLY	(1<<0)
 #define F_WRONLY	(1<<1)
 #define LPCM_BIG_ENDIAN	(1<<2)
