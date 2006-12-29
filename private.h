@@ -138,7 +138,7 @@ typedef struct s_AIFFComment CommentChunk ;
 
 
 /* iff.c */
-int find_iff_chunk(IFFType chunk,FILE* fd,uint32_t* length) ;
+int find_iff_chunk(IFFType, AIFF_Ref, uint32_t *) ;
 char* get_iff_attribute(AIFF_Ref r,IFFType attrib) ;
 int set_iff_attribute(AIFF_Ref w,IFFType attrib,char* str) ;
 int clone_iff_attributes(AIFF_Ref w, AIFF_Ref r) ;

@@ -50,7 +50,7 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 		return (0);
 	}
 	for (;;) {
-		if (fread(d.buf, 1, 8, fd) < 8)
+		if (fread(d.buf, 1, 8, r->fd) < 8)
 			return 0;
 		
 		d.chk.len = ARRANGE_BE32(d.chk.len);
