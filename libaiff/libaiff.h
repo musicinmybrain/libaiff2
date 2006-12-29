@@ -124,7 +124,7 @@ static char AnnoID[4] = {'O', 'N', 'N', 'A'};
 #endif /* WORDS_BIGENDIAN */
 #define F_AIFC		(1<<4)
 #define F_OPTIMIZE	(F_AIFC | LPCM_SYS_ENDIAN)
-#define F_DITHER	(1<<5)
+#define F_NOTSEEKABLE	(1<<5)
 
 /* Play modes */
 #define kModeNoLooping			0

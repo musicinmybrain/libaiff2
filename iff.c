@@ -27,20 +27,15 @@
  */
 
 #define LIBAIFF 1
-#include <libaiff/libaiff.h>
-#include <libaiff/endian.h>
-#include "private.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-
+#include <libaiff/libaiff.h>
+#include <libaiff/endian.h>
+#include "private.h"
 
 int 
-find_iff_chunk(IFFType chunk, FILE * fd, uint32_t * length)
+find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 {
 	union cio {
 		uint8_t buf[8];
@@ -50,15 +45,19 @@ find_iff_chunk(IFFType chunk, FILE * fd, uint32_t * length)
 	ASSERT(sizeof(IFFChunk) == 8);
 	chunk = ARRANGE_BE32(chunk);
 
-	if (fseek(fd, 12, SEEK_SET) == -1) {
-		return 0;
+	if (!(r->flags & F_NOTSEEKABLE) && 
+	    fseek(r->fd, 12, SEEK_SET) < 0) {
+		return (0);
 	}
 	for (;;) {
 		if (fread(d.buf, 1, 8, fd) < 8)
 			return 0;
 		
 		d.chk.len = ARRANGE_BE32(d.chk.len);
-		if (d.chk.id != chunk) {
+		if (d.chk.id == chunk) {
+			*length = d.chk.len;
+			break;
+		} else {
 			/*
 			 * In Electronic Arts IFF files (like AIFF)
 			 * chunk start positions must be even.
@@ -66,17 +65,23 @@ find_iff_chunk(IFFType chunk, FILE * fd, uint32_t * length)
 			if (d.chk.len & 1)	/* if( *length % 2 != 0 ) */
 				++(d.chk.len);
 
-			if (fseek(fd, (long) d.chk.len, SEEK_CUR) == -1) {
-				return 0;
+			/* skip this chunk */
+			if (!(r->flags & F_NOTSEEKABLE)) {
+				if (fseek(r->fd, (long) d.chk.len, SEEK_CUR) == -1) {
+					return (0);
+				}
+			} else {
+				int count = (int) d.chk.len;
+				while (count-- > 0) {
+					if (getc(r->fd) < 0)
+						return (0);
+				}
 			}
-		} else {
-			*(length) = d.chk.len;
-			break;
 		}
 
 	}
 
-	return 1;
+	return (1);
 }
 
 char *
@@ -85,7 +90,7 @@ get_iff_attribute(AIFF_Ref r, IFFType attrib)
 	char *str;
 	uint32_t len;
 	
-	if (!find_iff_chunk(attrib, r->fd, &len))
+	if (!find_iff_chunk(attrib, r, &len))
 		return NULL;
 
 	if (!len)

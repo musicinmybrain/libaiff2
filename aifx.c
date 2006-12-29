@@ -27,12 +27,13 @@
  */
 
 #define LIBAIFF 1
-#include <libaiff/libaiff.h>
-#include <libaiff/endian.h>
-#include "private.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <libaiff/libaiff.h>
+#include <libaiff/endian.h>
+#include "private.h"
+
 
 int 
 get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
@@ -47,17 +48,17 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 	CommonChunk p;
 	IFFType aFmt;
 
-	if (!find_iff_chunk(AIFF_COMM, r->fd, &len))
-		return -1;
+	if (!find_iff_chunk(AIFF_COMM, r, &len))
+		return (-1);
 
 	if (len < 18)
-		return -1;
+		return (-1);
 
 	if (fread(&(p.numChannels), 1, 2, r->fd) < 2 ||
 	    fread(&(p.numSampleFrames), 1, 4, r->fd) < 4 ||
 	    fread(&(p.sampleSize), 1, 2, r->fd) < 2 ||
 	    fread(buffer, 1, 10, r->fd) < 10)
-		return -1;
+		return (-1);
 
 	p.numChannels = ARRANGE_BE16(p.numChannels);
 	p.numSampleFrames = ARRANGE_BE32(p.numSampleFrames);
@@ -82,7 +83,7 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 	}
 	if (len >= 22 && r->format == AIFF_TYPE_AIFC) {
 		if (fread(&aFmt, 1, 4, r->fd) < 4)
-			return -1;
+			return (-1);
 		switch (aFmt) {
 		case AUDIO_FORMAT_LPCM:	/* 'NONE' */
 		case AUDIO_FORMAT_lpcm:	/* 'lpcm' (not standard) */
@@ -136,6 +137,18 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 		}
 		if (audioFormat)
 			*audioFormat = aFmt;
+
+		/*
+		 * Read the description string if 
+		 * the F_NOTSEEKABLE flag is set
+		 */
+		if (len > 22 && (r->flags & F_NOTSEEKABLE)) {
+			int count = PASCALInGetLength(r->fd);
+			while (count-- > 0) {
+				if (getc(r->fd) < 0)
+					return (-1);
+			}
+		}
 	} else {
 		if (audioFormat)
 			*audioFormat = AUDIO_FORMAT_LPCM;
@@ -145,7 +158,7 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 
 	r->stat = 0;
 
-	return 1;
+	return (1);
 }
 
 int 
@@ -157,12 +170,12 @@ read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 	Marker m;
 
 	if (r->stat != 4) {
-		if (!find_iff_chunk(AIFF_MARK, r->fd, &cklen))
-			return 0;
+		if (!find_iff_chunk(AIFF_MARK, r, &cklen))
+			return (0);
 		if (cklen < 2)
-			return -1;
+			return (-1);
 		if (fread(&nMarkers, 1, 2, r->fd) < 2)
-			return -1;
+			return (-1);
 		nMarkers = ARRANGE_BE16(nMarkers);
 		r->nMarkers = (int) nMarkers;
 		r->markerPos = 0;
@@ -171,11 +184,11 @@ read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 	n = r->nMarkers;
 	if (r->markerPos >= n) {
 		r->stat = 0;
-		return 0;
+		return (0);
 	}
 	if (fread(&(m.id), 1, 2, r->fd) < 2 || 
 	    fread(&(m.position), 1, 4, r->fd) < 4)
-		return -1;
+		return (-1);
 	m.id = ARRANGE_BE16(m.id);
 	m.position = ARRANGE_BE32(m.position);
 	
@@ -183,17 +196,24 @@ read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 		int l;
 		*name = PASCALInRead(r->fd, &l);
 	} else {
-		int l;
-		l = PASCALInGetLength(r->fd);
-		if (fseek(r->fd, (long) l, SEEK_CUR) < 0)
-			return -1;
+		int l = PASCALInGetLength(r->fd);
+		
+		if (!(r->flags & F_NOTSEEKABLE)) {
+			if (fseek(r->fd, (long) l, SEEK_CUR) < 0)
+				return (-1);
+		} else {
+			while (l-- > 0) {
+				if (getc(r->fd) < 0)
+					return (-1);
+			}
+		}
 	}
 
 	*id = (int) m.id;
 	*position = m.position;
 	++(r->markerPos);
 
-	return 1;
+	return (1);
 }
 
 int 
@@ -212,18 +232,18 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 
 	r->stat = 0;
 
-	if (!find_iff_chunk(AIFF_INST, r->fd, &cklen))
-		return 0;
+	if (!find_iff_chunk(AIFF_INST, r, &cklen))
+		return (0);
 	if (cklen != 20)
-		return 0;
+		return (0);
 	if (fread(buffer, 1, 6, r->fd) < 6)
-		return 0;
+		return (0);
 	if (fread(&gain, 1, 2, r->fd) < 2)
-		return 0;
+		return (0);
 	if (fread(&sustainLoop, 1, 6, r->fd) < 6)
-		return 0;
+		return (0);
 	if (fread(&releaseLoop, 1, 6, r->fd) < 6)
-		return 0;
+		return (0);
 
 	inpi->baseNote = buffer[0];
 	inpi->detune = buffer[1];
@@ -261,7 +281,7 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 	inpi->releaseLoop.endLoop = positions[3];
 
 	r->stat = 0;
-	return 1;
+	return (1);
 }
 
 int 
@@ -272,15 +292,15 @@ do_aifx_prepare(AIFF_Ref r)
 	long of;
 	ASSERT(sizeof(SoundChunk) == 8);
 
-	if (!find_iff_chunk(AIFF_SSND, r->fd, &clen))
-		return -1;
+	if (!find_iff_chunk(AIFF_SSND, r, &clen))
+		return (-1);
 	if (clen < 8)
-		return -1;
+		return (-1);
 	clen -= 8;
 	r->soundLen = clen;
 	r->pos = 0;
 	if (fread(&s, 1, 8, r->fd) < 8) {
-		return -1;
+		return (-1);
 	}
 	s.offset = ARRANGE_BE32(s.offset);
 	if (s.offset)
@@ -290,13 +310,20 @@ do_aifx_prepare(AIFF_Ref r)
 	/*
 	 * FIXME: What is s.blockSize?
 	 */
-
-	if (of && fseek(r->fd, of, SEEK_CUR) < 0) {
-		return -1;
+	if (of > 0) {
+		if (!(r->flags & F_NOTSEEKABLE)) {
+			if (fseek(r->fd, of, SEEK_CUR) < 0)
+				return (-1);
+		} else {
+			while (of-- > 0) {
+				if (getc(r->fd) < 0)
+					return (-1);
+			}
+		}
 	}
 	r->stat = 1;
 
-	return 1;
+	return (1);
 }
 
 struct s_encName {
@@ -305,12 +332,13 @@ struct s_encName {
 };
 #define kNumEncs	6
 static struct s_encName encNames[kNumEncs] = {
-	{AUDIO_FORMAT_LPCM, "Signed big-endian linear PCM"},
-	{AUDIO_FORMAT_twos, "Signed big-endian linear PCM"},
-	{AUDIO_FORMAT_sowt, "Signed little-endian linear PCM"},
-	{AUDIO_FORMAT_FL32, "Signed big-endian IEEE-754 single-precision floating point PCM"},
-	{AUDIO_FORMAT_ULAW, "Signed logarithmic 8-bit mu-Law PCM"},
-	{AUDIO_FORMAT_ALAW, "Signed logarithmic 8-bit A-Law PCM"}
+	{AUDIO_FORMAT_LPCM, "Signed integer (big-endian) linear PCM"},
+	{AUDIO_FORMAT_twos, "Signed integer (big-endian) linear PCM"},
+	{AUDIO_FORMAT_sowt, "Signed integer (little-endian) linear PCM"},
+	{AUDIO_FORMAT_FL32, "Signed IEEE-754 single precision (big-endian) "
+	                    "floating point PCM"},
+	{AUDIO_FORMAT_ULAW, "Signed 8-bit mu-Law floating point PCM"},
+	{AUDIO_FORMAT_ALAW, "Signed 8-bit A-Law floating point PCM"}
 };
 
 char *

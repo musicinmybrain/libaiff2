@@ -34,7 +34,7 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
-static AIFF_Ref AIFF_ReadOpen (const char *, int flags);
+static AIFF_Ref AIFF_ReadOpen (const char *, int);
 static AIFF_Ref AIFF_WriteOpen (const char *, int);
 static void AIFF_ReadClose (AIFF_Ref);
 static int AIFF_WriteClose (AIFF_Ref);
@@ -261,6 +261,8 @@ AIFF_Seek(AIFF_Ref r, uint32_t pos)
 	int res = 0;
 
 	if (!r || !(r->flags & F_RDONLY))
+		return -1;
+	if (r->flags & F_NOTSEEKABLE)
 		return -1;
 
 	r->stat = 0;
