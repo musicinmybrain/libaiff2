@@ -178,16 +178,15 @@ int
 AIFF_GetInstrumentData(AIFF_Ref r, Instrument * i)
 {
 	if (!r || !(r->flags & F_RDONLY))
-		return -1;
+		return (-1);
 	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
 	case AIFF_TYPE_AIFC:
 		return get_aifx_instrument(r, i);
 	default:
-		return 0;
+		return (0);
 	}
-	return 0;
 }
 
 int 
@@ -195,7 +194,7 @@ AIFF_GetAudioFormat(AIFF_Ref r, uint32_t * nSamples, int *channels,
     double *samplingRate, int *bitsPerSample, int *segmentSize)
 {
 	if (!r || !(r->flags & F_RDONLY))
-		return -1;
+		return (-1);
 
 	if (nSamples)
 		*nSamples = r->nSamples;
@@ -208,7 +207,7 @@ AIFF_GetAudioFormat(AIFF_Ref r, uint32_t * nSamples, int *channels,
 	if (segmentSize)
 		*segmentSize = r->segmentSize;
 
-	return 0;
+	return (1);
 }
 
 size_t 
@@ -247,8 +246,6 @@ AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 	default:
 		return 0;
 	}
-
-	return 0;
 }
 
 int 
@@ -287,8 +284,6 @@ AIFF_Seek(AIFF_Ref r, uint32_t pos)
 	default:
 		return 0;
 	}
-
-	return 0;
 }
 
 int 
