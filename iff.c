@@ -51,7 +51,7 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 	}
 	for (;;) {
 		if (fread(d.buf, 1, 8, r->fd) < 8)
-			return 0;
+			return (0);
 		
 		d.chk.len = ARRANGE_BE32(d.chk.len);
 		if (d.chk.id == chunk) {
@@ -71,7 +71,16 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 					return (0);
 				}
 			} else {
-				int count = (int) d.chk.len;
+				int count;
+
+				/*
+				 * In not-seekable mode, don't skip
+				 * the SSND chunk. Otherwise we 
+				 * couldn't get it back later.
+				 */
+				if (d.chk.id == ARRANGE_BE32(AIFF_SSND))
+					return (0);
+				count = (int) d.chk.len;
 				while (count-- > 0) {
 					if (getc(r->fd) < 0)
 						return (0);
