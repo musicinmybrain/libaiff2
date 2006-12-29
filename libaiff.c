@@ -90,6 +90,7 @@ AIFF_ReadOpen(const char *file, int flags)
 		free(r);
 		return NULL;
 	}
+	r->flags = F_RDONLY | flags;
 	if (fread(&hdr, 1, 4, r->fd) < 4) {
 		fclose(r->fd);
 		free(r);
@@ -122,13 +123,7 @@ AIFF_ReadOpen(const char *file, int flags)
 			return NULL;
 		}
 
-		/*
-		 * Get basic sound format
-		 */
-		if (get_aifx_format(r, NULL, &(r->nChannels), NULL,
-			NULL, &(r->segmentSize),
-			&(r->audioFormat),
-			&(r->flags)) < 1) {
+		if (init_aifx(r) < 1) {
 			fclose(r->fd);
 			free(r);
 			return NULL;
@@ -143,7 +138,6 @@ AIFF_ReadOpen(const char *file, int flags)
 	r->stat = 0;
 	r->buffer = NULL;
 	r->buflen = 0;
-	r->flags |= F_RDONLY | flags;
 
 	return r;
 }
@@ -202,16 +196,18 @@ AIFF_GetAudioFormat(AIFF_Ref r, uint32_t * nSamples, int *channels,
 {
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
-	
-	switch (r->format) {
-	case AIFF_TYPE_AIFF:
-	case AIFF_TYPE_AIFC:
-		return get_aifx_format(r, nSamples, channels,
-		    samplingRate, bitsPerSample,
-		    segmentSize, NULL, NULL);
-	default:
-		return 0;
-	}
+
+	if (nSamples)
+		*nSamples = r->nSamples;
+	if (channels)
+		*channels = r->nChannels;
+	if (samplingRate)
+		*samplingRate = r->samplingRate;
+	if (bitsPerSample)
+		*bitsPerSample = r->bitsPerSample;
+	if (segmentSize)
+		*segmentSize = r->segmentSize;
+
 	return 0;
 }
 

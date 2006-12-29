@@ -36,12 +36,9 @@
 
 
 int 
-get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
-    double *samplingRate, int *bitsPerSample, int *segmentSize,
-    IFFType * audioFormat, int *flags)
+init_aifx(AIFF_Ref r)
 {
-	int bps;
-	int wSegmentSize;
+	int bps, wSegmentSize;
 	double sRate;
 	uint8_t buffer[10];
 	uint32_t len;
@@ -65,22 +62,17 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 	p.sampleSize = ARRANGE_BE16(p.sampleSize);
 	sRate = ieee754_read_extended(buffer);
 
-	if (nSamples)
-		*nSamples = p.numSampleFrames;
-	if (channels)
-		*channels = (int) p.numChannels;
-	if (samplingRate)
-		*samplingRate = sRate;
-	if (bitsPerSample)
-		*bitsPerSample = (int) p.sampleSize;
-	bps = (int) (p.sampleSize);
+	r->nSamples = p.numSampleFrames;
+	r->nChannels = (int) p.numChannels;
+	r->samplingRate = sRate;
+	r->bitsPerSample = (int) p.sampleSize;
 
-	if (segmentSize) {
-		wSegmentSize = bps >> 3;	/* bps / 8 */
-		if (bps & 0x7)	/* if( bps % 8 != 0 ) */
-			++wSegmentSize;
-		*segmentSize = wSegmentSize;
-	}
+	bps = (int) (p.sampleSize);
+	wSegmentSize = bps >> 3;	/* bps / 8 */
+	if (bps & 7)	/* if( bps % 8 != 0 ) */
+		++wSegmentSize;
+	r->segmentSize = wSegmentSize;
+
 	if (len >= 22 && r->format == AIFF_TYPE_AIFC) {
 		if (fread(&aFmt, 1, 4, r->fd) < 4)
 			return (-1);
@@ -89,54 +81,39 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 		case AUDIO_FORMAT_lpcm:	/* 'lpcm' (not standard) */
 		case AUDIO_FORMAT_twos:	/* 'twos' */
 			aFmt = AUDIO_FORMAT_LPCM;
-			if (flags)
-				*flags = LPCM_BIG_ENDIAN;
+			r->flags |= LPCM_BIG_ENDIAN;
 			break;
 			
 		case AUDIO_FORMAT_ULAW: /* 'ULAW' */
 		case AUDIO_FORMAT_ulaw: /* 'ulaw' */
 			aFmt = AUDIO_FORMAT_ULAW;
-			if (segmentSize)
-				*segmentSize = 2;
-			if (bitsPerSample)
-				*bitsPerSample = 14;
-			if (flags)
-				*flags = 0;
+			r->segmentSize = 2;
+			r->bitsPerSample = 14;
 			break;
 		
 		case AUDIO_FORMAT_ALAW: /* 'ALAW' */
 		case AUDIO_FORMAT_alaw: /* 'alaw' */
 			aFmt = AUDIO_FORMAT_ALAW;
-			if (segmentSize)
-				*segmentSize = 2;
-			if (bitsPerSample)
-				*bitsPerSample = 13;
-			if (flags)
-				*flags = 0;
+			r->segmentSize = 2;
+			r->bitsPerSample = 13;
 			break;
 			
 		case AUDIO_FORMAT_sowt:	/* 'sowt' */
 			aFmt = AUDIO_FORMAT_LPCM;
-			if (flags)
-				*flags = LPCM_LTE_ENDIAN;
+			r->flags |= LPCM_LTE_ENDIAN;
 			break;
 
 		case AUDIO_FORMAT_FL32: /* 'FL32' */
 		case AUDIO_FORMAT_fl32: /* 'fl32' */
 			aFmt = AUDIO_FORMAT_FL32;
-			if (segmentSize)
-				*segmentSize = 4;
-			if (bitsPerSample)
-				*bitsPerSample = 32;
-			if (flags)
-				*flags = 0;
+			r->segmentSize = 4;
+			r->bitsPerSample = 32;
 			break;
 				
 		default:
 			aFmt = AUDIO_FORMAT_UNKNOWN;
 		}
-		if (audioFormat)
-			*audioFormat = aFmt;
+		r->audioFormat = aFmt;
 
 		/*
 		 * Read the description string if 
@@ -150,10 +127,8 @@ get_aifx_format(AIFF_Ref r, uint32_t * nSamples, int *channels,
 			}
 		}
 	} else {
-		if (audioFormat)
-			*audioFormat = AUDIO_FORMAT_LPCM;
-		if (flags)
-			*flags = LPCM_BIG_ENDIAN;
+		r->audioFormat = AUDIO_FORMAT_LPCM;
+		r->flags |= LPCM_BIG_ENDIAN;
 	}
 
 	r->stat = 0;

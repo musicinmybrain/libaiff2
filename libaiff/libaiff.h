@@ -60,8 +60,11 @@ struct s_AIFF_Ref {
 	int flags;
 	int stat;
 	int segmentSize;
+	int bitsPerSample;
 	int nMarkers;
 	int nChannels;
+	double samplingRate;
+	uint32_t nSamples;
 	int markerPos;
 	uint32_t len;
 	uint32_t soundLen;
