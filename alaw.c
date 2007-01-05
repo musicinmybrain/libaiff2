@@ -89,7 +89,7 @@ do_alaw (AIFF_Ref r, void *buffer, size_t len)
 		--len;
 	
 	n = len >> 1;
-	rem = r->soundLen - r->pos;
+	rem = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(n, rem);
 	if (bytesToRead == 0)
 		return 0;
@@ -123,7 +123,7 @@ do_alaw (AIFF_Ref r, void *buffer, size_t len)
 
 
 int 
-alaw_seek (AIFF_Ref r, uint32_t pos)
+alaw_seek (AIFF_Ref r, uint64_t pos)
 {
 	/*
 	 * Seeking is the same in both

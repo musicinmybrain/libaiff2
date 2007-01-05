@@ -62,7 +62,7 @@ init_aifx(AIFF_Ref r)
 	p.sampleSize = ARRANGE_BE16(p.sampleSize);
 	sRate = ieee754_read_extended(buffer);
 
-	r->nSamples = p.numSampleFrames;
+	r->nSamples = (uint64_t) (p.numSampleFrames);
 	r->nChannels = (int) p.numChannels;
 	r->samplingRate = sRate;
 	r->bitsPerSample = (int) p.sampleSize;
@@ -108,6 +108,7 @@ init_aifx(AIFF_Ref r)
 			aFmt = AUDIO_FORMAT_FL32;
 			r->segmentSize = 4;
 			r->bitsPerSample = 32;
+			r->flags |= LPCM_BIG_ENDIAN;
 			break;
 				
 		default:
@@ -137,7 +138,7 @@ init_aifx(AIFF_Ref r)
 }
 
 int 
-read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
+read_aifx_marker(AIFF_Ref r, int *id, uint64_t * position, char **name)
 {
 	uint16_t nMarkers;
 	uint32_t cklen;
@@ -185,7 +186,7 @@ read_aifx_marker(AIFF_Ref r, int *id, uint32_t * position, char **name)
 	}
 
 	*id = (int) m.id;
-	*position = m.position;
+	*position = (uint64_t) (m.position);
 	++(r->markerPos);
 
 	return (1);
@@ -250,10 +251,10 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 		}
 	}
 
-	inpi->sustainLoop.beginLoop = positions[0];
-	inpi->sustainLoop.endLoop = positions[1];
-	inpi->releaseLoop.beginLoop = positions[2];
-	inpi->releaseLoop.endLoop = positions[3];
+	inpi->sustainLoop.beginLoop = (uint64_t) (positions[0]);
+	inpi->sustainLoop.endLoop = (uint64_t) (positions[1]);
+	inpi->releaseLoop.beginLoop = (uint64_t) (positions[2]);
+	inpi->releaseLoop.endLoop = (uint64_t) (positions[3]);
 
 	r->stat = 0;
 	return (1);
@@ -272,14 +273,14 @@ do_aifx_prepare(AIFF_Ref r)
 	if (clen < 8)
 		return (-1);
 	clen -= 8;
-	r->soundLen = clen;
+	r->soundLen = (uint64_t) clen;
 	r->pos = 0;
 	if (fread(&s, 1, 8, r->fd) < 8) {
 		return (-1);
 	}
 	s.offset = ARRANGE_BE32(s.offset);
 	if (s.offset)
-		r->soundLen -= s.offset;
+		r->soundLen -= (uint64_t) (s.offset);
 	of = (long) s.offset;
 
 	/*

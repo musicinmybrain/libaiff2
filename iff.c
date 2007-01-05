@@ -68,7 +68,7 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 		if (r->flags & SSND_REACHED) {
 			if (chunk == ARRANGE_BE32(AIFF_SSND)) {
 				r->flags &= ~SSND_REACHED;
-				*length = r->soundLen;
+				*length = (uint32_t) (r->soundLen);
 				return (1);
 			} else {
 				return (0);
@@ -106,7 +106,7 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 
 				if (d.chk.id == ARRANGE_BE32(AIFF_SSND)) {
 					r->flags |= SSND_REACHED;
-					r->soundLen = d.chk.len;
+					r->soundLen = (uint64_t) (d.chk.len);
 					return (0);
 				}
 				count = (int) l;

@@ -80,7 +80,7 @@ do_ulaw (AIFF_Ref r, void *buffer, size_t len)
 		--len;
 	
 	n = len >> 1;
-	rem = r->soundLen - r->pos;
+	rem = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(n, rem);
 	if (bytesToRead == 0)
 		return 0;
@@ -114,12 +114,12 @@ do_ulaw (AIFF_Ref r, void *buffer, size_t len)
 
 	
 int 
-ulaw_seek (AIFF_Ref r, uint32_t pos)
+ulaw_seek (AIFF_Ref r, uint64_t pos)
 {
 	long of;
 	uint32_t b;
 	
-	b = pos * r->nChannels;
+	b = (uint32_t) pos * r->nChannels;
 	if (b >= r->soundLen)
 		return 0;
 	of = (long) b;

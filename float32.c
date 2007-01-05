@@ -136,7 +136,7 @@ float32_swap_samples(void *buffer, int n)
 	uint32_t *streams = (uint32_t *) buffer;
 
 	while (n-- > 0)
-		streams[n] = ARRANGE_BE32(streams[n]);
+		streams[n] = ARRANGE_ENDIAN_32(streams[n]);
 }
 
 size_t 
@@ -155,8 +155,8 @@ do_float32(AIFF_Ref r, void *buffer, size_t len)
 		--len;
 	}
 	n >>= 2;
-
-	slen = (size_t) (r->soundLen - r->pos);
+	
+	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(len, slen);
 
 	if (bytesToRead == 0)
@@ -178,20 +178,21 @@ do_float32(AIFF_Ref r, void *buffer, size_t len)
 	else
 		clen = 0;
 	r->pos += clen;
-
-	float32_swap_samples(r->buffer2, n);
+	
+	if (r->flags & LPCM_NEED_SWAP)
+		float32_swap_samples(r->buffer2, n);
 	float32_decode(buffer, r->buffer2, n);
 
 	return bytes_in;
 }
 
 int 
-float32_seek(AIFF_Ref r, uint32_t pos)
+float32_seek(AIFF_Ref r, uint64_t pos)
 {
 	long of;
 	uint32_t b;
 
-	b = pos * r->nChannels * 4;
+	b = (uint32_t) pos * r->nChannels * 4;
 	if (b >= r->soundLen)
 		return 0;
 	of = (long) b;

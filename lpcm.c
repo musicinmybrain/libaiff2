@@ -116,7 +116,7 @@ do_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	}
 	n /= r->segmentSize;
 
-	slen = (size_t) (r->soundLen - r->pos);
+	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(len, slen);
 
 	if (bytesToRead == 0)
@@ -135,12 +135,12 @@ do_lpcm(AIFF_Ref r, void *buffer, size_t len)
 }
 
 int 
-lpcm_seek(AIFF_Ref r, uint32_t pos)
+lpcm_seek(AIFF_Ref r, uint64_t pos)
 {
 	long of;
 	uint32_t b;
 
-	b = pos * r->nChannels * r->segmentSize;
+	b = (uint32_t) pos * r->nChannels * r->segmentSize;
 	if (b >= r->soundLen)
 		return 0;
 	of = (long) b;

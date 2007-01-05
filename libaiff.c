@@ -190,7 +190,7 @@ AIFF_GetInstrumentData(AIFF_Ref r, Instrument * i)
 }
 
 int 
-AIFF_GetAudioFormat(AIFF_Ref r, uint32_t * nSamples, int *channels,
+AIFF_GetAudioFormat(AIFF_Ref r, uint64_t * nSamples, int *channels,
     double *samplingRate, int *bitsPerSample, int *segmentSize)
 {
 	if (!r || !(r->flags & F_RDONLY))
@@ -249,7 +249,7 @@ AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 }
 
 int 
-AIFF_Seek(AIFF_Ref r, uint32_t pos)
+AIFF_Seek(AIFF_Ref r, uint64_t pos)
 {
 	int res = 0;
 
@@ -432,7 +432,7 @@ err1:
 	}
 	hdr.hid = ARRANGE_BE32(AIFF_FORM);
 	w->len = 4;
-	hdr.len = ARRANGE_BE32(w->len);
+	hdr.len = ARRANGE_BE32(4);
 	if (flags & F_AIFC)
 		hdr.fid = ARRANGE_BE32(AIFF_AIFC);
 	else
@@ -514,7 +514,7 @@ AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers)
 	doneReadingMarkers = !cloneMarkers;
 	if (!doneReadingMarkers) {
 		int mMarkerId;
-		uint32_t mMarkerPos;
+		uint64_t mMarkerPos;
 		char *mMarkerName;
 		
 		if ((ret = AIFF_StartWritingMarkers(w)) < 1)
@@ -832,7 +832,10 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 		++(w->sampleBytes);
 		++(w->len);
 	}
-	curpos = w->len + 8;
+	/*
+	 * XXX: AIFF files are 32-bit
+	 */
+	curpos = (uint32_t) (w->len) + 8;
 
 	of = (long) (w->soundOffSet);
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
@@ -845,7 +848,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 		return -1;
 	}
 	len = ARRANGE_BE32(chk.len);
-	len += w->sampleBytes;
+	len += (uint32_t) (w->sampleBytes);
 	chk.len = ARRANGE_BE32(len);
 
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
@@ -875,8 +878,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	c.sampleSize = ARRANGE_BE16(c.sampleSize);
 	segment = w->segmentSize;
 
-	c.numSampleFrames = w->sampleBytes / c.numChannels;
-	c.numSampleFrames /= segment;
+	c.numSampleFrames = ((uint32_t) (w->sampleBytes) / c.numChannels) / segment;
 	c.numChannels = ARRANGE_BE16(c.numChannels);
 	c.numSampleFrames = ARRANGE_BE32(c.numSampleFrames);
 	c.sampleSize = ARRANGE_BE16(c.sampleSize);
@@ -928,7 +930,7 @@ AIFF_StartWritingMarkers(AIFF_Ref w)
 }
 
 int 
-AIFF_WriteMarker(AIFF_Ref w, uint32_t position, char *name)
+AIFF_WriteMarker(AIFF_Ref w, uint64_t position, char *name)
 {
 	Marker m;
 
@@ -943,7 +945,8 @@ AIFF_WriteMarker(AIFF_Ref w, uint32_t position, char *name)
 
 	m.id = (MarkerId) (w->markerPos + 1);
 	m.id = ARRANGE_BE16(m.id);
-	m.position = ARRANGE_BE32(position);
+	m.position = (uint32_t) position; /* XXX: AIFF is a 32-bit format */
+	m.position = ARRANGE_BE32(m.position);
 
 	if (fwrite(&(m.id), 1, 2, w->fd) < 2 || 
 	    fwrite(&(m.position), 1, 4, w->fd) < 4)
@@ -970,8 +973,7 @@ int
 AIFF_EndWritingMarkers(AIFF_Ref w)
 {
 	IFFType ckid;
-	uint32_t cklen;
-	uint32_t curpos;
+	uint32_t cklen, curpos;
 	long offSet;
 	uint16_t nMarkers;
 
@@ -980,9 +982,9 @@ AIFF_EndWritingMarkers(AIFF_Ref w)
 	if (w->stat != 4)
 		return -1;
 
-	curpos = w->len + 8;
-	cklen = w->len;
-	cklen -= w->markerOffSet;
+	curpos = (uint32_t) (w->len) + 8;
+	cklen = (uint32_t) (w->len);
+	cklen -= (uint32_t) (w->markerOffSet);
 	cklen = ARRANGE_BE32(cklen);
 
 	offSet = (long) (w->markerOffSet);
@@ -1045,7 +1047,8 @@ AIFF_WriteClose(AIFF_Ref w)
 		return -1;
 	}
 	/* Fix the 'length' field */
-	hdr.len = ARRANGE_BE32(w->len);
+	hdr.len = (uint32_t) (w->len);
+	hdr.len = ARRANGE_BE32(hdr.len);
 
 	if (fseek(w->fd, 0, SEEK_SET) < 0) {
 		fclose(w->fd);

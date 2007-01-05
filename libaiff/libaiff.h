@@ -64,15 +64,15 @@ struct s_AIFF_Ref {
 	int nMarkers;
 	int nChannels;
 	double samplingRate;
-	uint32_t nSamples;
+	uint64_t nSamples;
 	int markerPos;
-	uint32_t len;
-	uint32_t soundLen;
-	uint32_t pos;
-	uint32_t sampleBytes;
-	uint32_t commonOffSet;
-	uint32_t soundOffSet;
-	uint32_t markerOffSet;
+	uint64_t len;
+	uint64_t soundLen;
+	uint64_t pos;
+	uint64_t sampleBytes;
+	uint64_t commonOffSet;
+	uint64_t soundOffSet;
+	uint64_t markerOffSet;
 	IFFType format;
 	IFFType audioFormat;
 	void* buffer;
@@ -143,8 +143,8 @@ static char AnnoID[4] = {'O', 'N', 'N', 'A'};
 struct s_Loop
 {
 	int16_t playMode ;
-	uint32_t beginLoop ;
-	uint32_t endLoop ;
+	uint64_t beginLoop ;
+	uint64_t endLoop ;
 } ;
 
 struct s_Instrument
@@ -167,10 +167,10 @@ int AIFF_CloseFile(AIFF_Ref) ;
 char* AIFF_GetAttribute(AIFF_Ref,IFFType) ;
 int AIFF_GetInstrumentData(AIFF_Ref,Instrument*) ;
 size_t AIFF_ReadSamples(AIFF_Ref,void*,size_t) ;
-int AIFF_Seek(AIFF_Ref,uint32_t) ;
+int AIFF_Seek(AIFF_Ref,uint64_t) ;
 int AIFF_ReadSamples32Bit(AIFF_Ref,int32_t*,int) ;
-int AIFF_ReadMarker(AIFF_Ref,int*,uint32_t*,char**) ;
-int AIFF_GetAudioFormat(AIFF_Ref,uint32_t*,int*,double*,int*,int*) ;
+int AIFF_ReadMarker(AIFF_Ref,int*,uint64_t*,char**) ;
+int AIFF_GetAudioFormat(AIFF_Ref,uint64_t*,int*,double*,int*,int*) ;
 int AIFF_SetAttribute(AIFF_Ref,IFFType,char*) ;
 int AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers) ;
 int AIFF_SetAudioFormat(AIFF_Ref,int,double,int ) ;
@@ -179,7 +179,7 @@ int AIFF_WriteSamples(AIFF_Ref,void*,size_t) ;
 int AIFF_WriteSamples32Bit(AIFF_Ref,int32_t*,int) ;
 int AIFF_EndWritingSamples(AIFF_Ref) ;
 int AIFF_StartWritingMarkers(AIFF_Ref) ;
-int AIFF_WriteMarker(AIFF_Ref,uint32_t,char*) ;
+int AIFF_WriteMarker(AIFF_Ref,uint64_t,char*) ;
 int AIFF_EndWritingMarkers(AIFF_Ref) ;
 
 #if !defined(LIBAIFF) && !defined(LIBAIFF_NOCOMPAT)
