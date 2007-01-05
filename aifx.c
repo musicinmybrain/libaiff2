@@ -240,9 +240,11 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 	/* Read the positions */
 	memset(positions, 0, 16 /* 4*4 */ );	/* by default set them to 0 */
 	for (;;) {
-		if (read_aifx_marker(r, &id, &pos, &name) < 1) {
+		uint64_t p;
+		if (read_aifx_marker(r, &id, &p, &name) < 1) {
 			break;
 		}
+		pos = (uint32_t) p;
 		if (name)
 			free(name);
 		for (i = 0; i < 4; ++i) {

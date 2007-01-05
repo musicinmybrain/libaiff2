@@ -159,7 +159,7 @@ AIFF_GetAttribute(AIFF_Ref r, IFFType attrib)
 }
 
 int 
-AIFF_ReadMarker(AIFF_Ref r, int *id, uint32_t * pos, char **name)
+AIFF_ReadMarker(AIFF_Ref r, int *id, uint64_t * pos, char **name)
 {
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
