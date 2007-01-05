@@ -145,7 +145,7 @@ int clone_iff_attributes(AIFF_Ref w, AIFF_Ref r) ;
 
 /* aifx.c */
 int init_aifx(AIFF_Ref) ;
-int read_aifx_marker(AIFF_Ref r,int* id,uint32_t* position,char** name) ;
+int read_aifx_marker(AIFF_Ref r,int* id,uint64_t* position,char** name) ;
 int get_aifx_instrument(AIFF_Ref r,Instrument* inpi) ;
 int do_aifx_prepare(AIFF_Ref r) ;
 char * get_aifx_enc_name(IFFType) ;
@@ -153,19 +153,19 @@ char * get_aifx_enc_name(IFFType) ;
 /* lpcm.c */
 void lpcm_swap_samples(int,int,void*,void*,int) ;
 size_t do_lpcm(AIFF_Ref r,void* buffer,size_t len) ;
-int lpcm_seek(AIFF_Ref r,uint32_t pos) ;
+int lpcm_seek(AIFF_Ref, uint64_t) ;
 
 /* ulaw.c */
 size_t do_ulaw(AIFF_Ref, void*, size_t) ;
-int ulaw_seek(AIFF_Ref, uint32_t) ;
+int ulaw_seek(AIFF_Ref, uint64_t) ;
 
 /* alaw.c */
 size_t do_alaw(AIFF_Ref, void*, size_t) ;
-int alaw_seek(AIFF_Ref, uint32_t) ;
+int alaw_seek(AIFF_Ref, uint64_t) ;
 
 /* float32.c */
 size_t do_float32(AIFF_Ref, void*, size_t) ;
-int float32_seek(AIFF_Ref, uint32_t) ;
+int float32_seek(AIFF_Ref, uint64_t) ;
 
 /* extended.c */
 void ieee754_write_extended (double, uint8_t*);
