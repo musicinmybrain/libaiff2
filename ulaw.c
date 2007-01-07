@@ -164,7 +164,7 @@ ulaw_read_float32 (AIFF_Ref r, float *buffer, int nFrames)
 	
 	bytes = (uint8_t *) (r->buffer2);
 	for (i = 0; i < bytesRead; ++i) {
-		buffer[i] = (float) ulawdec(bytes[i]) / 32768.0;
+		buffer[i] = (float) (ulawdec(bytes[i])) / 32768.0;
 	}
 	
 	return bytesRead; /* bytesRead = framesRead (segmentSize = 1) */

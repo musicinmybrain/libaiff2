@@ -273,7 +273,7 @@ ieee754_write_single(float in)
 	                                               to use in normalised
 	                                               numbers)
 												 */
-	mantissa = (uint32_t)floor( fraction ) ;
+	mantissa = (uint32_t)(floor( fraction ));
 	
 	/* 
 	 * Check for special numbers (NaN or infinity)
