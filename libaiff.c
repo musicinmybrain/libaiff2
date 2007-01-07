@@ -262,12 +262,14 @@ AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 }
 
 int
-AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int n)
+AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int nSamplePoints)
 {
 	int res = 1;
 	struct decoder *dec;
 	
 	if (!r || !(r->flags & F_RDONLY))
+		return -1;
+	if (nSamplePoints % (r->nChannels) != 0)
 		return 0;
 	
 	if (r->stat == 0) {
@@ -286,11 +288,11 @@ AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int n)
 	if ((dec = FindDecoder(r->audioFormat)) == NULL)
 		return 0;
 	
-	return dec->read_float32(r, buffer, n);
+	return dec->read_float32(r, buffer, nSamplePoints);
 }
 
 int 
-AIFF_Seek(AIFF_Ref r, uint64_t pos)
+AIFF_Seek(AIFF_Ref r, uint64_t framePos)
 {
 	int res = 0;
 	struct decoder *dec;
@@ -314,16 +316,16 @@ AIFF_Seek(AIFF_Ref r, uint64_t pos)
 	if ((dec = FindDecoder(r->audioFormat)) == NULL)
 		return 0;
 	
-	return dec->seek(r, pos);
+	return dec->seek(r, framePos);
 }
 
 int 
-AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nsamples)
+AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nSamplePoints)
 {
+	int n = nSamplePoints;
 	void *buffer;
 	int i, j;
 	size_t h;
-	int n = nsamples;
 	size_t len;
 	int segmentSize;
 	int32_t *dwords;
@@ -335,6 +337,8 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nsamples)
 
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
+	if (n % (r->nChannels) != 0)
+		return 0;
 
 	if (n < 1 || r->segmentSize == 0) {
 		if (r->buffer) {
