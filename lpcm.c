@@ -156,16 +156,16 @@ lpcm_seek(AIFF_Ref r, uint64_t pos)
  * Dequantize LPCM (buffer) to floating point PCM (samples)
  */
 void
-lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
+lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
 {
 	switch (segmentSize) {
 		case 4:
 		  {
 			  int32_t *integers = (int32_t *) buffer;
 			  
-			  while (nFrames-- > 0)
+			  while (nSamples-- > 0)
 				{
-				  outFrames[nFrames] = (float) integers[nFrames] / 2147483648.0;
+				  outFrames[nSamples] = (float) integers[nSamples] / 2147483648.0;
 				}
 			  break;
 		  }
@@ -175,7 +175,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
 			  int32_t integer;
 			  int sgn;
 			  
-			  while (nFrames-- > 0)
+			  while (nSamples-- > 0)
 				{
 #ifdef WORDS_BIGENDIAN
 				  if (b[0] & 0x80)
@@ -203,7 +203,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
 					  integer = ~(integer - 1);
 					}
 				  
-				  outFrames[nFrames] = (float) integer / 8388608.0;
+				  outFrames[nSamples] = (float) integer / 8388608.0;
 				  b += 3;
 				}
 			  break;
@@ -212,9 +212,9 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
 		  {
 			  int16_t *integers = (int16_t *) buffer;
 			  
-			  while (nFrames-- > 0)
+			  while (nSamples-- > 0)
 				{
-				  outFrames[nFrames] = (float) integers[nFrames] / 32768.0;
+				  outFrames[nSamples] = (float) integers[nSamples] / 32768.0;
 				}
 			  break;
 		  }
@@ -222,9 +222,9 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
 		  {
 			  int8_t *integers = (int8_t *) buffer;
 			  
-			  while (nFrames-- > 0)
+			  while (nSamples-- > 0)
 				{
-				  outFrames[nFrames] = (float) integers[nFrames] / 128.0;
+				  outFrames[nSamples] = (float) integers[nSamples] / 128.0;
 				}
 			  break;
 		  }
@@ -232,13 +232,13 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
 }
 			  
 static int
-lpcm_read_float32(AIFF_Ref r, float *buffer, int nFrames)
+lpcm_read_float32(AIFF_Ref r, float *buffer, int nSamples)
 {
 	size_t len, slen, bytesToRead, bytes_in;
 	uint32_t clen;
-	int nFramesRead;
+	int nSamplesRead;
 	
-	len = (size_t) nFrames * r->segmentSize;
+	len = (size_t) nSamples * r->segmentSize;
 	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(len, slen);
 	if (bytesToRead == 0)
@@ -261,12 +261,12 @@ lpcm_read_float32(AIFF_Ref r, float *buffer, int nFrames)
 	else
 		clen = 0;
 	r->pos += clen;
-	nFramesRead = (int) clen / (r->segmentSize);
+	nSamplesRead = (int) clen / (r->segmentSize);
 	
-	lpcm_swap_samples(r->segmentSize, r->flags, r->buffer2, r->buffer2, nFramesRead);
-	lpcm_dequant(r->segmentSize, r->buffer2, buffer, nFramesRead);
+	lpcm_swap_samples(r->segmentSize, r->flags, r->buffer2, r->buffer2, nSamplesRead);
+	lpcm_dequant(r->segmentSize, r->buffer2, buffer, nSamplesRead);
 	
-	return nFramesRead;
+	return nSamplesRead;
 }
 
 

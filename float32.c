@@ -411,7 +411,7 @@ ieee754_read_single(uint32_t in)
 static int
 float32_read_float32(AIFF_Ref r, float *buffer, int n)
 {
-	int nFramesRead;
+	int nSamplesRead;
 	uint32_t clen;
 	size_t len, slen;
 	size_t bytes_in;
@@ -441,13 +441,13 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 		
 		if (bytes_in > 0)
 		  {
-			nFramesRead = (int) bytes_in >> 2;
+			nSamplesRead = (int) bytes_in >> 2;
 			if (r->flags & LPCM_NEED_SWAP)
-				float32_swap_samples((void *) buffer, nFramesRead);
+				float32_swap_samples((void *) buffer, nSamplesRead);
 		  }
 		else
 		  {
-			nFramesRead = 0;
+			nSamplesRead = 0;
 		  }
 	  }
 	else
@@ -468,18 +468,18 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 		  {
 			uint32_t *dwords = (uint32_t *) (r->buffer2);
 			
-			nFramesRead = (int) bytes_in >> 2;
+			nSamplesRead = (int) bytes_in >> 2;
 			if (r->flags & LPCM_NEED_SWAP)
-				float32_swap_samples(dwords, nFramesRead);
+				float32_swap_samples(dwords, nSamplesRead);
 			
-			while (nFramesRead-- > 0)
+			while (nSamplesRead-- > 0)
 			  {
-				buffer[nFramesRead] = ieee754_read_single(dwords[nFramesRead]);
+				buffer[nSamplesRead] = ieee754_read_single(dwords[nSamplesRead]);
 			  }
 		  }
 		else
 		  {
-			nFramesRead = 0;
+			nSamplesRead = 0;
 		  }
 	  }
 	
@@ -489,7 +489,7 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 		clen = 0;
 	r->pos += clen;
 	
-	return nFramesRead;
+	return nSamplesRead;
 }
 
 
