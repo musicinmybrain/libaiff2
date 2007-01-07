@@ -234,7 +234,8 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
 static int
 lpcm_read_float32(AIFF_Ref r, float *buffer, int nFrames)
 {
-	size_t len, slen, bytesToRead;
+	size_t len, slen, bytesToRead, bytes_in;
+	uint32_t clen;
 	int nFramesRead;
 	
 	len = (size_t) nFrames * r->segmentSize;
