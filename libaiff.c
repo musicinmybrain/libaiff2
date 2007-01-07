@@ -1,7 +1,7 @@
 /*	$Id$ */
 
 /*-
- * Copyright (c) 2005, 2006 Marco Trillo
+ * Copyright (c) 2005, 2006, 2007 Marco Trillo
  * 
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -34,6 +34,14 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
+static struct decoder* decoders[] = {
+	&lpcm,
+	&ulaw,
+	&alaw,
+	&float32,
+	NULL
+};
+
 static AIFF_Ref AIFF_ReadOpen (const char *, int);
 static AIFF_Ref AIFF_WriteOpen (const char *, int);
 static void AIFF_ReadClose (AIFF_Ref);
@@ -41,6 +49,7 @@ static int AIFF_WriteClose (AIFF_Ref);
 static void* InitBuffer (AIFF_Ref, size_t);
 static void DestroyBuffer (AIFF_Ref);
 static int DoWriteSamples (AIFF_Ref, void *, size_t, int);
+static struct decoder* FindDecoder (IFFType);
 
 AIFF_Ref
 AIFF_OpenFile(const char *file, int flags)
@@ -210,10 +219,25 @@ AIFF_GetAudioFormat(AIFF_Ref r, uint64_t * nSamples, int *channels,
 	return (1);
 }
 
+static struct decoder*
+FindDecoder (IFFType fmt)
+{
+	struct decoder **dd, *d;
+	
+	for (dd = decoders; (d = *dd) != NULL; ++dd)
+	  {
+		if (d->fmt == fmt)
+			return d;
+	  }
+	
+	return NULL;
+}
+
 size_t 
 AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 {
 	int res = 1;
+	struct decoder *dec;
 
 	if (!r || !(r->flags & F_RDONLY))
 		return 0;
@@ -230,28 +254,46 @@ AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 	}
 	if (res < 1)
 		return 0;
-
-	switch (r->audioFormat) {
-	case AUDIO_FORMAT_LPCM:
-		return do_lpcm(r, buffer, len);
-		
-	case AUDIO_FORMAT_ULAW:
-		return do_ulaw(r, buffer, len);
-		
-	case AUDIO_FORMAT_ALAW:
-		return do_alaw(r, buffer, len);
 	
-	case AUDIO_FORMAT_FL32:
-		return do_float32(r, buffer, len);
-	default:
+	if ((dec = FindDecoder(r->audioFormat)) == NULL)
 		return 0;
+	
+	return dec->read_lpcm(r, buffer, len);
+}
+
+int
+AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int n)
+{
+	int res = 1;
+	struct decoder *dec;
+	
+	if (!r || !(r->flags & F_RDONLY))
+		return 0;
+	
+	if (r->stat == 0) {
+		switch (r->format) {
+			case AIFF_TYPE_AIFF:
+			case AIFF_TYPE_AIFC:
+				res = do_aifx_prepare(r);
+				break;
+			default:
+				return 0;
+		}
 	}
+	if (res < 1)
+		return 0;
+	
+	if ((dec = FindDecoder(r->audioFormat)) == NULL)
+		return 0;
+	
+	return dec->read_float32(r, buffer, n);
 }
 
 int 
 AIFF_Seek(AIFF_Ref r, uint64_t pos)
 {
 	int res = 0;
+	struct decoder *dec;
 
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
@@ -269,21 +311,10 @@ AIFF_Seek(AIFF_Ref r, uint64_t pos)
 	if (res < 1)
 		return -1;
 
-	switch (r->audioFormat) {
-	case AUDIO_FORMAT_LPCM:
-		return lpcm_seek(r, pos);
-		
-	case AUDIO_FORMAT_ULAW:
-		return ulaw_seek(r, pos);
-	
-	case AUDIO_FORMAT_ALAW:
-		return alaw_seek(r, pos);
-	
-	case AUDIO_FORMAT_FL32:
-		return float32_seek(r, pos);
-	default:
+	if ((dec = FindDecoder(r->audioFormat)) == NULL)
 		return 0;
-	}
+	
+	return dec->seek(r, pos);
 }
 
 int 

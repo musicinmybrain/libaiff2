@@ -136,6 +136,12 @@ struct s_AIFFComment
 } ;
 typedef struct s_AIFFComment CommentChunk ;
 
+struct decoder {
+	IFFType fmt;
+	size_t (*read_lpcm)(AIFF_Ref, void *, size_t);
+	int (*read_float32)(AIFF_Ref, float *, int);
+	int (*seek)(AIFF_Ref, uint64_t);
+};
 
 /* iff.c */
 int find_iff_chunk(IFFType, AIFF_Ref, uint32_t *) ;
@@ -151,21 +157,19 @@ int do_aifx_prepare(AIFF_Ref r) ;
 char * get_aifx_enc_name(IFFType) ;
 
 /* lpcm.c */
-void lpcm_swap_samples(int,int,void*,void*,int) ;
-size_t do_lpcm(AIFF_Ref r,void* buffer,size_t len) ;
-int lpcm_seek(AIFF_Ref, uint64_t) ;
+void lpcm_swap_samples(int,int,void*,void*,int);
+void lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames);
+extern struct decoder lpcm;
 
 /* ulaw.c */
-size_t do_ulaw(AIFF_Ref, void*, size_t) ;
-int ulaw_seek(AIFF_Ref, uint64_t) ;
+int g711_seek(AIFF_Ref, uint64_t) ;
+extern struct decoder ulaw;
 
 /* alaw.c */
-size_t do_alaw(AIFF_Ref, void*, size_t) ;
-int alaw_seek(AIFF_Ref, uint64_t) ;
+extern struct decoder alaw;
 
 /* float32.c */
-size_t do_float32(AIFF_Ref, void*, size_t) ;
-int float32_seek(AIFF_Ref, uint64_t) ;
+extern struct decoder float32;
 
 /* extended.c */
 void ieee754_write_extended (double, uint8_t*);

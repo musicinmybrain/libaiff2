@@ -1,7 +1,7 @@
 /*	$Id$ */
 
 /*-
- * Copyright (c) 2006 Marco Trillo
+ * Copyright (c) 2006, 2007 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -31,9 +31,9 @@
 #include "private.h"
 
 /*
- * A-Law (A-Law)
+ * G.711 A-Law (A-Law)
  * 
- * Digital A-Law is a 8-bit floating point representation
+ * G.711 A-Law is a 8-bit floating point representation
  * of 13-bit PCM samples, with a 4-bit mantissa and a 3-bit
  * exponent.
  * 
@@ -41,7 +41,7 @@
  * so low samples (with zeros in the most-significant bits) get
  * more precision with this encoding than with normal 8-bit LPCM.
  * 
- * For more information on Digital A-Law:
+ * For more information on G.711 A-Law:
  *   http://shannon.cm.nctu.edu.tw/comtheory/chap3.pdf
  *   http://en.wikipedia.org/wiki/G.711
  */
@@ -74,11 +74,10 @@ alawdec (uint8_t x)
 }
 
 /*
- * XXX : this is identical to the do_ulaw() function, except the call to alawdec().
- * Maybe we should unify the u-Law & A-Law encodings in a do_ualaw() ?
+ * XXX : this is identical to the ulaw_read_lpcm() function, except the call to alawdec().
  */
-size_t
-do_alaw (AIFF_Ref r, void *buffer, size_t len)
+static size_t
+alaw_read_lpcm (AIFF_Ref r, void *buffer, size_t len)
 {
 	size_t n, i, rem, bytesToRead, bytesRead;
 	uint8_t* bytes;
@@ -121,14 +120,51 @@ do_alaw (AIFF_Ref r, void *buffer, size_t len)
 	return (bytesRead << 1); /* bytesRead * 2 */
 }
 
-
-int 
-alaw_seek (AIFF_Ref r, uint64_t pos)
+/*
+ * XXX : this is identical to the ulaw_read_float32() function, except the call to alawdec().
+ */
+static int
+alaw_read_float32 (AIFF_Ref r, float *buffer, int nFrames)
 {
-	/*
-	 * Seeking is the same in both
-	 * u-Law & A-Law
-	 */
-	return ulaw_seek(r, pos);
+	size_t n = (size_t) nFrames, i, rem, bytesToRead, bytesRead;
+	uint8_t* bytes;
+	
+	rem = (size_t) (r->soundLen) - (size_t) (r->pos);
+	bytesToRead = MIN(n, rem);
+	if (bytesToRead == 0)
+		return 0;
+	
+	if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
+		if (r->buffer2 != NULL)
+			free(r->buffer2);
+		r->buffer2 = malloc(bytesToRead);
+		if (r->buffer2 == NULL) {
+			r->buflen2 = 0;
+			return 0;
+		}
+		r->buflen2 = bytesToRead;
+	}
+	
+	bytesRead = fread(r->buffer2, 1, bytesToRead, r->fd);
+	if (bytesRead > 0) {
+		r->pos += bytesRead;
+	} else {
+		return 0;
+	}
+	
+	bytes = (uint8_t *) (r->buffer2);
+	for (i = 0; i < bytesRead; ++i) {
+		buffer[i] = (float) alawdec(bytes[i]) / 32768.0;
+	}
+	
+	return bytesRead; /* bytesRead = framesRead (segmentSize = 1) */
 }
+
+
+struct decoder alaw = {
+	AUDIO_FORMAT_ALAW,
+	alaw_read_lpcm,
+	alaw_read_float32,
+	g711_seek
+};
 

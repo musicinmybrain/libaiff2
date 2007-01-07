@@ -1,7 +1,7 @@
 /*	$Id$ */
 
 /*-
- * Copyright (c) 2005, 2006 Marco Trillo
+ * Copyright (c) 2005, 2006, 2007 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -167,6 +167,7 @@ int AIFF_CloseFile(AIFF_Ref) ;
 char* AIFF_GetAttribute(AIFF_Ref,IFFType) ;
 int AIFF_GetInstrumentData(AIFF_Ref,Instrument*) ;
 size_t AIFF_ReadSamples(AIFF_Ref,void*,size_t) ;
+int AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int n) ;
 int AIFF_Seek(AIFF_Ref,uint64_t) ;
 int AIFF_ReadSamples32Bit(AIFF_Ref,int32_t*,int) ;
 int AIFF_ReadMarker(AIFF_Ref,int*,uint64_t*,char**) ;

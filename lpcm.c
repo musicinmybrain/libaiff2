@@ -1,7 +1,7 @@
 /*	$Id$ */
 
 /*-
- * Copyright (c) 2005, 2006 Marco Trillo
+ * Copyright (c) 2005, 2006, 2007 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -100,8 +100,8 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 	return;
 }
 
-size_t 
-do_lpcm(AIFF_Ref r, void *buffer, size_t len)
+static size_t 
+lpcm_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 {
 	int n;
 	uint32_t clen;
@@ -134,7 +134,7 @@ do_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	return bytes_in;
 }
 
-int 
+static int 
 lpcm_seek(AIFF_Ref r, uint64_t pos)
 {
 	long of;
@@ -151,3 +151,128 @@ lpcm_seek(AIFF_Ref r, uint64_t pos)
 	r->pos = b;
 	return 1;
 }
+
+/*
+ * Dequantize LPCM (buffer) to floating point PCM (samples)
+ */
+void
+lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames)
+{
+	switch (segmentSize) {
+		case 4:
+		  {
+			  int32_t *integers = (int32_t *) buffer;
+			  
+			  while (nFrames-- > 0)
+				{
+				  outFrames[nFrames] = (float) integers[nFrames] / 2147483648.0;
+				}
+			  break;
+		  }
+		case 3:
+		  {
+			  uint8_t *b = (uint8_t *) buffer;
+			  int32_t integer;
+			  int sgn;
+			  
+			  while (nFrames-- > 0)
+				{
+#ifdef WORDS_BIGENDIAN
+				  if (b[0] & 0x80)
+					  sgn = 1;
+				  else
+					  sgn = 0;
+				  
+				  integer = ((int32_t)(b[0] & 0x7F) << 2) + 
+					  ((int32_t) b[1] << 1) + 
+					  (int32_t) b[2];
+#else
+				  if (b[2] & 0x80)
+					  sgn = 1;
+				  else
+					  sgn = 0;
+				  
+				  integer = ((int32_t)(b[2] & 0x7F) << 2) + 
+					  ((int32_t) b[1] << 1) + 
+					  (int32_t) b[0];
+#endif /* WORDS_BIGENDIAN */
+				  
+				  if (sgn)
+					{
+					  /* two's complement */
+					  integer = ~(integer - 1);
+					}
+				  
+				  outFrames[nFrames] = (float) integer / 8388608.0;
+				  b += 3;
+				}
+			  break;
+		  }
+		case 2:
+		  {
+			  int16_t *integers = (int16_t *) buffer;
+			  
+			  while (nFrames-- > 0)
+				{
+				  outFrames[nFrames] = (float) integers[nFrames] / 32768.0;
+				}
+			  break;
+		  }
+		case 1:
+		  {
+			  int8_t *integers = (int8_t *) buffer;
+			  
+			  while (nFrames-- > 0)
+				{
+				  outFrames[nFrames] = (float) integers[nFrames] / 128.0;
+				}
+			  break;
+		  }
+	}
+}
+			  
+static int
+lpcm_read_float32(AIFF_Ref r, float *buffer, int nFrames)
+{
+	size_t len, slen, bytesToRead;
+	int nFramesRead;
+	
+	len = (size_t) nFrames * r->segmentSize;
+	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
+	bytesToRead = MIN(len, slen);
+	if (bytesToRead == 0)
+		return 0;
+	
+	if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
+		if (r->buffer2 != NULL)
+			free(r->buffer2);
+		r->buffer2 = malloc(bytesToRead);
+		if (r->buffer2 == NULL) {
+			r->buflen2 = 0;
+			return 0;
+		}
+		r->buflen2 = bytesToRead;
+	}
+	
+	bytes_in = fread(r->buffer2, 1, bytesToRead, r->fd);
+	if (bytes_in > 0)
+		clen = (uint32_t) bytes_in;
+	else
+		clen = 0;
+	r->pos += clen;
+	nFramesRead = (int) clen / (r->segmentSize);
+	
+	lpcm_swap_samples(r->segmentSize, r->flags, r->buffer2, r->buffer2, nFramesRead);
+	lpcm_dequant(r->segmentSize, r->buffer2, buffer, nFramesRead);
+	
+	return nFramesRead;
+}
+
+
+struct decoder lpcm = {
+	AUDIO_FORMAT_LPCM,
+	lpcm_read_lpcm,
+	lpcm_read_float32,
+	lpcm_seek
+};
+
