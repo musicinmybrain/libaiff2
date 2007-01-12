@@ -156,7 +156,7 @@ lpcm_seek(AIFF_Ref r, uint64_t pos)
  * Dequantize LPCM (buffer) to floating point PCM (samples)
  */
 void
-lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
+lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 {
 	switch (segmentSize) {
 		case 4:
@@ -165,7 +165,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
 			  
 			  while (nSamples-- > 0)
 				{
-				  outFrames[nSamples] = (float) integers[nSamples] / 2147483648.0;
+				  outSamples[nSamples] = (float) integers[nSamples] / 2147483648.0;
 				}
 			  break;
 		  }
@@ -183,8 +183,8 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
 				  else
 					  sgn = 0;
 				  
-				  integer = ((int32_t)(b[0] & 0x7F) << 2) + 
-					  ((int32_t) b[1] << 1) + 
+				  integer = ((int32_t)(b[0] & 0x7F) << 16) + 
+					  ((int32_t) b[1] << 8) + 
 					  (int32_t) b[2];
 #else
 				  if (b[2] & 0x80)
@@ -192,8 +192,8 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
 				  else
 					  sgn = 0;
 				  
-				  integer = ((int32_t)(b[2] & 0x7F) << 2) + 
-					  ((int32_t) b[1] << 1) + 
+				  integer = ((int32_t)(b[2] & 0x7F) << 16) + 
+					  ((int32_t) b[1] << 8) + 
 					  (int32_t) b[0];
 #endif /* WORDS_BIGENDIAN */
 				  
@@ -203,7 +203,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
 					  integer = ~(integer - 1);
 					}
 				  
-				  outFrames[nSamples] = (float) integer / 8388608.0;
+				  outSamples[nSamples] = (float) integer / 8388608.0;
 				  b += 3;
 				}
 			  break;
@@ -214,7 +214,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
 			  
 			  while (nSamples-- > 0)
 				{
-				  outFrames[nSamples] = (float) integers[nSamples] / 32768.0;
+				  outSamples[nSamples] = (float) integers[nSamples] / 32768.0;
 				}
 			  break;
 		  }
@@ -224,7 +224,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nSamples)
 			  
 			  while (nSamples-- > 0)
 				{
-				  outFrames[nSamples] = (float) integers[nSamples] / 128.0;
+				  outSamples[nSamples] = (float) integers[nSamples] / 128.0;
 				}
 			  break;
 		  }
