@@ -177,9 +177,6 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 			  
 			  while (nSamples-- > 0)
 				{
-				  int32_t integer;
-				  int sgn;
-				  
 #ifdef WORDS_BIGENDIAN
 				  sgn = b[0] & 0x80;
 				  
