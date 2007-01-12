@@ -180,13 +180,13 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 #ifdef WORDS_BIGENDIAN
 				  sgn = b[0] & 0x80;
 				  
-				  integer = ((int32_t)(b[0] & 0x7F) << 16) + 
+				  integer = ((int32_t) b[0] << 16) + 
 					  ((int32_t) b[1] << 8) + 
 					  (int32_t) b[2];
 #else
 				  sgn = b[2] & 0x80;
 				  
-				  integer = ((int32_t)(b[2] & 0x7F) << 16) + 
+				  integer = ((int32_t) b[2] << 16) + 
 					  ((int32_t) b[1] << 8) + 
 					  (int32_t) b[0];
 #endif /* WORDS_BIGENDIAN */
@@ -194,10 +194,10 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 				  if (sgn)
 					{
 					  /*
-					   * add the sign bit to the two's complement representation
-					   * (this only works if the host CPU uses two's complement negative nums)
+					   * sign propagation
+					   * (host CPU must use two's complement ordering)
 					   */
-					  integer = (int32_t) (0x80000000 | (uint32_t) integer);
+					  integer = (int32_t) (0xFF000000 | (uint32_t) integer);
 					}
 				  
 				  outSamples[nSamples] = (float) integer / 8388608.0;
