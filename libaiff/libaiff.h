@@ -58,7 +58,7 @@ typedef uint16_t MarkerId ;
 struct s_AIFF_Ref {
 	FILE* fd;
 	int flags;
-	int stat;
+	int stat; /* status */
 	int segmentSize;
 	int bitsPerSample;
 	int nMarkers;
@@ -76,6 +76,7 @@ struct s_AIFF_Ref {
 	IFFType format;
 	IFFType audioFormat;
 	void* decoder;
+	void* pdec;
 	void* buffer;
 	size_t buflen;
 	void* buffer2;
