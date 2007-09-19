@@ -49,6 +49,8 @@ static int AIFF_WriteClose (AIFF_Ref);
 static void* InitBuffer (AIFF_Ref, size_t);
 static void DestroyBuffer (AIFF_Ref);
 static int DoWriteSamples (AIFF_Ref, void *, size_t, int);
+static int Prepare (AIFF_Ref);
+static void Unprepare (AIFF_Ref);
 static struct decoder* FindDecoder (IFFType);
 
 AIFF_Ref
@@ -156,6 +158,7 @@ AIFF_GetAttribute(AIFF_Ref r, IFFType attrib)
 {
 	if (!r || !(r->flags & F_RDONLY))
 		return NULL;
+	Unprepare(r);
 	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
@@ -172,6 +175,7 @@ AIFF_ReadMarker(AIFF_Ref r, int *id, uint64_t * pos, char **name)
 {
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
+	Unprepare(r);
 	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
@@ -188,6 +192,7 @@ AIFF_GetInstrumentData(AIFF_Ref r, Instrument * i)
 {
 	if (!r || !(r->flags & F_RDONLY))
 		return (-1);
+	Unprepare(r);
 	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
@@ -219,6 +224,50 @@ AIFF_GetAudioFormat(AIFF_Ref r, uint64_t * nSamples, int *channels,
 	return (1);
 }
 
+static int
+Prepare (AIFF_Ref r)
+{
+	int res;
+	struct decoder *dec;
+	
+	if (r->stat != 1) {
+		switch (r->format) {
+		case AIFF_TYPE_AIFF:
+		case AIFF_TYPE_AIFC:
+			res = do_aifx_prepare(r);
+			break;
+		default:
+			res = -1;
+		}
+		if (res < 1)
+			return res;
+		if ((dec = FindDecoder(r->audioFormat)) == NULL)
+			return -1;
+		if (dec->construct) {
+			if ((res = dec->construct(r)) < 1)
+				return res;
+		}
+
+		r->decoder = dec;
+		r->stat = 1;
+	}
+
+	return 1;
+}
+
+static void
+Unprepare (AIFF_Ref r)
+{
+	struct decoder *dec;
+	
+	if (r->stat == 1) {
+		dec = r->decoder;
+		if (dec->delete)
+			dec->delete(r);
+	}
+	r->stat = 0;
+}
+
 static struct decoder*
 FindDecoder (IFFType fmt)
 {
@@ -236,27 +285,11 @@ FindDecoder (IFFType fmt)
 size_t 
 AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 {
-	int res = 1;
 	struct decoder *dec;
-
-	if (!r || !(r->flags & F_RDONLY))
-		return 0;
-
-	if (r->stat == 0) {
-		switch (r->format) {
-		case AIFF_TYPE_AIFF:
-		case AIFF_TYPE_AIFC:
-			res = do_aifx_prepare(r);
-			break;
-		default:
-			return 0;
-		}
-	}
-	if (res < 1)
-		return 0;
 	
-	if ((dec = FindDecoder(r->audioFormat)) == NULL)
+	if (!r || !(r->flags & F_RDONLY) || Prepare(r) < 1)
 		return 0;
+	dec = r->decoder;
 	
 	return dec->read_lpcm(r, buffer, len);
 }
@@ -264,29 +297,16 @@ AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 int
 AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int nSamplePoints)
 {
-	int res = 1;
+	int res;
 	struct decoder *dec;
 	
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
 	if (nSamplePoints % (r->nChannels) != 0)
 		return 0;
-	
-	if (r->stat == 0) {
-		switch (r->format) {
-			case AIFF_TYPE_AIFF:
-			case AIFF_TYPE_AIFC:
-				res = do_aifx_prepare(r);
-				break;
-			default:
-				return 0;
-		}
-	}
-	if (res < 1)
-		return 0;
-	
-	if ((dec = FindDecoder(r->audioFormat)) == NULL)
-		return 0;
+	if ((res = Prepare(r)) < 1)
+		return res;
+	dec = r->decoder;
 	
 	return dec->read_float32(r, buffer, nSamplePoints);
 }
@@ -301,21 +321,11 @@ AIFF_Seek(AIFF_Ref r, uint64_t framePos)
 		return -1;
 	if (r->flags & F_NOTSEEKABLE)
 		return -1;
+	Unprepare(r);
+	if ((res = Prepare(r)) < 1)
+		return res;
+	dec = r->decoder;
 
-	r->stat = 0;
-	switch (r->format) {
-	case AIFF_TYPE_AIFF:
-	case AIFF_TYPE_AIFC:
-		res = do_aifx_prepare(r);
-		break;
-	}
-
-	if (res < 1)
-		return -1;
-
-	if ((dec = FindDecoder(r->audioFormat)) == NULL)
-		return 0;
-	
 	return dec->seek(r, framePos);
 }
 
@@ -438,6 +448,7 @@ AIFF_ReadClose(AIFF_Ref r)
 		free(r->buffer);
 	if (r->buffer2)
 		free(r->buffer2);
+	Unprepare(r);
 	fclose(r->fd);
 	free(r);
 	return;

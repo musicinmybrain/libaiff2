@@ -144,7 +144,6 @@ get_iff_attribute(AIFF_Ref r, IFFType attrib)
 		return NULL;
 	}
 	str[len] = '\0';
-	r->stat = 0;
 
 	return str;
 }

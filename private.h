@@ -1,4 +1,4 @@
-/*	$Id$ */
+/* 	$Id$ */
 
 #if !defined(HAVE_MEMSET) && defined(HAVE_BZERO)
 #ifdef HAVE_STRINGS_H
@@ -138,9 +138,11 @@ typedef struct s_AIFFComment CommentChunk ;
 
 struct decoder {
 	IFFType fmt;
+	void (*create) (AIFF_Ref);
 	size_t (*read_lpcm)(AIFF_Ref, void *, size_t);
 	int (*read_float32)(AIFF_Ref, float *, int);
 	int (*seek)(AIFF_Ref, uint64_t);
+	void (*delete) (AIFF_Ref);
 };
 
 /* iff.c */

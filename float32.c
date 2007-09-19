@@ -495,8 +495,10 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 
 struct decoder float32 = {
 	AUDIO_FORMAT_FL32,
+	NULL,
 	float32_read_lpcm,
 	float32_read_float32,
-	float32_seek
+	float32_seek,
+	NULL
 };
 

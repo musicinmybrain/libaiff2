@@ -132,8 +132,6 @@ init_aifx(AIFF_Ref r)
 		r->flags |= LPCM_BIG_ENDIAN;
 	}
 
-	r->stat = 0;
-
 	return (1);
 }
 
@@ -145,7 +143,7 @@ read_aifx_marker(AIFF_Ref r, int *id, uint64_t * position, char **name)
 	int n;
 	Marker m;
 
-	if (r->stat != 4) {
+	if (r->stat != 2) {
 		if (!find_iff_chunk(AIFF_MARK, r, &cklen))
 			return (0);
 		if (cklen < 2)
@@ -155,7 +153,7 @@ read_aifx_marker(AIFF_Ref r, int *id, uint64_t * position, char **name)
 		nMarkers = ARRANGE_BE16(nMarkers);
 		r->nMarkers = (int) nMarkers;
 		r->markerPos = 0;
-		r->stat = 4;
+		r->stat = 2;
 	}
 	n = r->nMarkers;
 	if (r->markerPos >= n) {
@@ -205,8 +203,6 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 	uint32_t pos;
 	uint32_t positions[4];
 	char *name;
-
-	r->stat = 0;
 
 	if (!find_iff_chunk(AIFF_INST, r, &cklen))
 		return (0);
@@ -258,7 +254,6 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 	inpi->releaseLoop.beginLoop = (uint64_t) (positions[2]);
 	inpi->releaseLoop.endLoop = (uint64_t) (positions[3]);
 
-	r->stat = 0;
 	return (1);
 }
 
@@ -299,7 +294,6 @@ do_aifx_prepare(AIFF_Ref r)
 			}
 		}
 	}
-	r->stat = 1;
 
 	return (1);
 }

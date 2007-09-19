@@ -269,8 +269,10 @@ lpcm_read_float32(AIFF_Ref r, float *buffer, int nSamples)
 
 struct decoder lpcm = {
 	AUDIO_FORMAT_LPCM,
+	NULL,
 	lpcm_read_lpcm,
 	lpcm_read_float32,
-	lpcm_seek
+	lpcm_seek,
+	NULL
 };
 
