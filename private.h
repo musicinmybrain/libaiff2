@@ -138,7 +138,7 @@ typedef struct s_AIFFComment CommentChunk ;
 
 struct decoder {
 	IFFType fmt;
-	void (*create) (AIFF_Ref);
+	int (*construct) (AIFF_Ref);
 	size_t (*read_lpcm)(AIFF_Ref, void *, size_t);
 	int (*read_float32)(AIFF_Ref, float *, int);
 	int (*seek)(AIFF_Ref, uint64_t);
@@ -163,11 +163,8 @@ void lpcm_swap_samples(int,int,void*,void*,int);
 void lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames);
 extern struct decoder lpcm;
 
-/* ulaw.c */
-int g711_seek(AIFF_Ref, uint64_t) ;
+/* g711.c */
 extern struct decoder ulaw;
-
-/* alaw.c */
 extern struct decoder alaw;
 
 /* float32.c */
