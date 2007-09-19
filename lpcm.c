@@ -110,10 +110,7 @@ lpcm_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	size_t bytesToRead;
 
 	n = (int) len;
-	while (n >= 0 && n % r->segmentSize != 0) {
-		--n;
-		--len;
-	}
+	len -= n % r->segmentSize;
 	n /= r->segmentSize;
 
 	slen = (size_t) (r->soundLen) - (size_t) (r->pos);

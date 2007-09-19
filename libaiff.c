@@ -359,9 +359,7 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nSamplePoints)
 		return -1;
 	}
 	segmentSize = r->segmentSize;
-
-	len = (size_t) n;
-	len *= segmentSize;
+	len = (size_t) n * segmentSize;
 
 	if ((r->buflen) < len) {
 		if (r->buffer)
@@ -424,15 +422,13 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nSamplePoints)
 	case 2:
 		words = (int16_t *) buffer;
 		for (i = 0; i < n; ++i) {
-			samples[i] = (int32_t) (words[i]);
-			samples[i] <<= 16;
+			samples[i] = (int32_t) (words[i]) << 16;
 		}
 		break;
 	case 1:
 		sbytes = (int8_t *) buffer;
 		for (i = 0; i < n; ++i) {
-			samples[i] = (int32_t) (sbytes[i]);
-			samples[i] <<= 24;
+			samples[i] = (int32_t) (sbytes[i]) << 24;
 		}
 		break;
 	}
