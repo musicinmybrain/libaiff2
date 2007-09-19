@@ -76,7 +76,7 @@ struct s_AIFF_Ref {
 	IFFType format;
 	IFFType audioFormat;
 	void* decoder;
-	void* pdec;
+	void* pdata;
 	void* buffer;
 	size_t buflen;
 	void* buffer2;
