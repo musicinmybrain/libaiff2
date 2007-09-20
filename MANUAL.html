@@ -94,7 +94,7 @@ This version of LibAiff supports the following features:
 </p>
 <ul>
 <li>Reading any valid <strong>Audio IFF</strong> file.</li>
-<li>Writing a valid <strong>Audio IFF</strong> file.</li>
+<li>Writing a valid <strong>Audio IFF</strong> or <strong>AIFF Compressed (AIFC)</strong> file.</li>
 <li>Reading a compressed <strong>AIFF Compressed (AIFC)</strong> file with audio encoded in the following formats:
 <ul>
 <li> <strong>Linear PCM</strong> (both big-endian and little-endian)</li>
@@ -103,7 +103,8 @@ This version of LibAiff supports the following features:
 <li> <strong>32-bit IEEE-754 floating point (float32)</strong></li>
 </ul></li>
 <li>Read &amp; write samples in all formats supported by the <strong>Audio IFF</strong> standard.</li>
-<li>Convert any sample format to and from 32 bits.</li>
+<li>Transparently receiving samples in 32-bit LPCM or floating-point PCM, with LibAiff doing all the conversions (if necessary).</li>
+<li>Transparently writing 32-bit LPCM audio, with LibAiff doing all the conversions (if necessary).</li>
 <li>Getting and setting all the <strong>AIFF Attributes</strong>.</li>
 <li>Reading and writing <strong>markers</strong> to positions on the sound.</li>
 <li>Reading <strong>instrument data</strong> from AIFF files.</li>
@@ -121,7 +122,7 @@ According to the official specification, <em><strong>Audio IFF</strong> is the r
 <h3>Encodings supported by LibAiff</h3>
 <p>
 LibAiff supports both <strong>linear encodings</strong> and <strong>logarithmic encodings</strong> when reading AIFF or AIFF-C files.
-However, the native format which is used for audio exchanging between the application and LibAiff is <strong>Linear PCM</strong>, the standard audio signal encoding.
+However, the only format supported for writing is <strong>Linear PCM</strong>, the standard audio signal encoding.
 <p>
 <strong>Linear encodings</strong> divide the given voltage range in equidistant steps or quants. As a result, loud signals (multiplicative) are encoded with more precision than weak signals (which have more rounding error in the quantization to steps of the same difference than the multiplicative signals). 
 <p>
@@ -141,10 +142,10 @@ LibAiff supports the following logarithmic encodings:
 <p>
 A 8-bit &#181;-Law encoding is equivalent to a 14-bit LPCM encoding for low signals, and equivalent to a 6-bit LPCM encoding for loud signals. Thus, it's a <em>lossy encoding</em> when compared to a full 14-bit LPCM, but provides a 2:1 size ratio (since 14-bit LPCM is packed into 2-byte segments) while retaining the same resolution for low signals, which can be used for compression purposes. It can efficiently compress signals which are statistically more likely to be near a low level than a high signal level.
 <p>
-As detailed before, LibAiff uses Linear PCM internally, so any logarithmic encoded data will be transparently handled and converted by the library, so the application only needs to handle Linear PCM data. &#181;-Law encodings are converted to full 14-bit LPCM data (lossless conversion), and A-Law encodings are converted to 13-bit LPCM.
+As detailed before, LibAiff can do any conversions automatically, so any logarithmic encoded data will be transparently handled and converted by the library, so the application only needs to handle Linear PCM data (or floating-point PCM data if the application prefers that). &#181;-Law encodings are converted to full 14-bit LPCM data (lossless conversion), and A-Law encodings are converted to 13-bit LPCM.
 <p>
-32-bit IEEE-754 floating point is converted to 32-bit integer LPCM. Note that this conversion loses some extra precision present
-on the original floating point values, due to the differences between linear and logarithmic encodings detailed above.
+32-bit IEEE-754 floating point can be converted to 32-bit integer LPCM. Note that this conversion loses some extra precision present
+on the original floating point values, due to the differences between linear and logarithmic encodings detailed above. Reading these samples in floating-point mode is a lossless operation.
 <h3>How Linear PCM is handled by AIFF and LibAiff</h3>
 <p>
 LPCM audio is stored as <strong>sample points</strong>, which are samples taken of the sound wave.
@@ -234,6 +235,7 @@ is to include the LibAiff header file (you need to have LibAiff installed or acc
 your development environment):
 </p>
 <pre>
+#define LIBAIFF_NOCOMPAT 1 <code>// do not use LibAiff 2 API compatibility</code>
 #include &lt;libaiff/libaiff.h&gt;
 </pre>
 <p>
@@ -259,62 +261,59 @@ for reading &amp; writing operations inside LibAiff.
 You pass these <em>references</em> as an argument to the LibAiff functions.
 </p>
 <p>
-The library uses the following C data types to refer to Audio IFF files:
+The library uses the following C data type to refer to Audio IFF files:
 </p>
 <pre>
-AIFF_ReadRef  r ;
-AIFF_WriteRef w ;
+AIFF_Ref  file;
 </pre>
-<p>
-The <tt>AIFF_ReadRef</tt> refers to an Audio IFF which is being reading, and the
-<tt>AIFF_WriteRef</tt> refers to an Audio IFF which is being writing.
-</p>
 <h2 id="section6">6. Opening and closing an Audio IFF file</h2>
 <pre>
 <code>/*
  * 'name' is a relative or absolute path
  * to a file.
  */</code>
-AIFF_ReadRef AIFF_Open(const char* name) ;
-AIFF_WriteRef AIFF_WriteOpen(const char* name) ;
+AIFF_Ref AIFF_OpenFile(const char* name, int flags) ;
 </pre>
 <p>
-You use the above functions to <strong>open</strong> an Audio IFF file for reading or writing.
+<tt>name</tt> is the name (or path) of the file to open. <tt>flags</tt> are a combination of ORed binary flags which can be:
+<ul>
+<li><tt>F_RDONLY</tt>: Open the file for reading.
+<li><tt>F_WRONLY</tt>: Open the file for writing.
+<li><tt>F_NOTSEEKABLE</tt>: The input file is not seekable (for example, a UNIX pipe). This is for files opened for reading.
+<li><tt>F_AIFC</tt>: Write always AIFF-C files instead of normal AIFF files.
+<li><tt>F_OPTIMIZE</tt>: Write optimized AIFF-C files (this implies the <tt>F_AIFC</tt> option). Optimized means that the file will be written in native endianness, to avoid any CPU-consuming byte-swappings.
+</ul>
+<p>You use the above function to <strong>open</strong> an Audio IFF file for reading or writing.
 </p>
 <p>
 The function will return a reference (see <a href="#section5">section 5</a>) or <tt>NULL</tt>
 if the file cannot be opened (i.e, the file does not exist or it cannot be created).
 </p>
 <p>
-Since the functions use dinamic memory, you can open more than one Audio IFF file at the same time.
+Since the function uses dynamic memory, you can open more than one Audio IFF file at the same time.
 </p>
 <p>
-When you have finished working with an Audio IFF file (i.e, the writing process has been completed) you
+When you have finished working with an Audio IFF file you
 should close it:
 </p>
 <pre>
-int AIFF_Close(AIFF_ReadRef r) ;
-int AIFF_WriteClose(AIFF_WriteRef w) ;
+int AIFF_CloseFile(AIFF_Ref r) ;
 </pre>
 <p>
 In case of writing, you need to close it when finished to construct a valid Audio IFF.
 If your program finish without closing the file, it will be incomplete.
 </p>
 <p>
-If you close the file without finishing the write process, the library will complain to <tt>stderr</tt>
-that the file is unfinished.
-</p>
-<p>
 Sample code:
 </p>
 <pre>
-AIFF_ReadRef ref ;
+AIFF_Ref ref ;
 
-ref = AIFF_Open( "../Music/track05.aiff" ) ;
+ref = AIFF_OpenFile("../Music/track05.aiff", F_RDONLY) ;
 if( ref )
 {
-	puts( "File opened successfully." ) ;
-	AIFF_Close( ref ) ;
+	puts("File opened successfully.") ;
+	AIFF_Close(ref);
 }
 </pre>
 <h2 id="section7">7. Attributes</h2>
@@ -340,7 +339,7 @@ The following <strong>attributes</strong> can be used on Audio IFF files:
 To <strong>extract</strong> an attribute from a reading Audio IFF file:
 </p>
 <pre>
-char* AIFF_GetAttribute(AIFF_ReadRef r,IFFType typ) ;
+char* AIFF_GetAttribute(AIFF_Ref r,IFFType typ) ;
 </pre>
 <p>
 <tt>IFFType</tt> should be a valid identifier of an attribute (see the list above).
@@ -371,7 +370,7 @@ if( attrib )
 To <strong>store</strong> an attribute into a writing Audio IFF file, you use:
 </p>
 <pre>
-int AIFF_SetAttribute(AIFF_WriteRef w,IFFType typ,char* attribute) ;
+int AIFF_SetAttribute(AIFF_Ref w,IFFType typ,char* attribute) ;
 </pre>
 <p><tt>typ</tt> should be a valid identifier, and <tt>attribute</tt> a valid
 C-string with the content of the attribute.
@@ -386,7 +385,7 @@ present on the file to the new edited copy.
 <p>
 You can use the <tt>AIFF_CloneAttributes</tt> function to accomplish this.
 <pre>
-int AIFF_CloneAttributes(AIFF_WriteRef w, AIFF_ReadRef r, int cloneMarkers);
+int AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers);
 </pre>
 <p>
 The <tt>r</tt> parameter is a reference to an opening-for-reading Audio IFF file from which the 
@@ -399,14 +398,14 @@ This function will return <strong>1</strong> on success, <strong>&lt; 1</strong>
 </p>
 <h2 id="section8">8. Getting and setting the sound format</h2>
 <pre>
-int AIFF_GetSoundFormat(AIFF_ReadRef r,uint32_t* nSamples,int* channels,int* samplingRate,
+int AIFF_GetAudioFormat(AIFF_Ref r,uint64_t* nSamples,int* channels,double* samplingRate,
 			int* bitsPerSample,int* segmentSize) ;
 			
-int AIFF_SetSoundFormat(AIFF_WriteRef w,int channels,int samplingRate,
+int AIFF_SetAudioFormat(AIFF_Ref w,int channels,double samplingRate,
 			int bitsPerSample) ;
 </pre>
 <p>
-You use the <tt>AIFF_GetSoundFormat</tt> function to extract format information
+You use the <tt>AIFF_GetAudioFormat</tt> function to extract format information
 about the sound in the Audio IFF file, like number of sample frames, n. of channels,
 sampling rate, the sample size or the segment size (you have an explanation of
 these concepts on <a href="#section3">section 3</a>).
@@ -416,14 +415,13 @@ The number of sample frames, <tt>nSamples</tt>, can be used to calculate the
 length in seconds of the sound:
 </p>
 <pre>
-uint32_t seconds ;
-uint32_t nSamples ;
+uint64_t seconds, nSamples ;
 int channels ;
-int samplingRate ;
+double samplingRate ;
 int bitsPerSample ;
 int segmentSize ;
 
-if( AIFF_GetSoundFormat( ref,&amp;nSamples,&amp;channels,
+if( AIFF_GetAudioFormat( ref,&amp;nSamples,&amp;channels,
 			&amp;samplingRate,&amp;bitsPerSample,
 			&amp;segmentSize ) &lt; 1 )
 {
@@ -435,11 +433,11 @@ seconds = nSamples / samplingRate ;
 <code>/*
  * Print out the seconds in H:MM:SS format
  */</code>
-printf("Length: %lu:%02lu:%02lu \n", seconds/3600,
-	(seconds/60)%60, seconds%60 ) ;
+printf("Length: %lu:%02lu:%02lu \n", (unsigned long) seconds/3600,
+	(unsigned long) (seconds/60)%60, (unsigned long) seconds%60 ) ;
 </pre>
 <p>
-The <tt>AIFF_SetSoundFormat</tt> is used to set the sound format before writing the sound
+The <tt>AIFF_SetAudioFormat</tt> is used to set the sound format before writing the sound
 to the Audio IFF file.
 </p>
 <p>
@@ -452,7 +450,7 @@ Both of these functions will return <strong>1</strong> for success, <strong>0</s
 </p>
 <h2 id="section9">9. Reading sound samples: the raw mode</h2>
 <pre>
-size_t AIFF_ReadSamples(AIFF_WriteRef r,void* buffer,size_t len) ;
+size_t AIFF_ReadSamples(AIFF_Ref r,void* buffer,size_t len) ;
 </pre>
 <p>
 The above function is used to extract raw sound data from the Audio IFF file. This function is
@@ -469,7 +467,7 @@ The function will return the n. of bytes read from the file and stored in buffer
 no more sound is present on the file, and <strong>-1</strong> for errors.
 </p>
 <p>
-The sound data will be presented according to the format provided with the <a href="#section8">AIFF_GetSoundFormat</a> function, as described on <a href="#section3">section 3</a>.
+The sound data will be presented according to the format provided with the <a href="#section8">AIFF_GetAudioFormat</a> function, as described on <a href="#section3">section 3</a>.
 </p>
 <p>
 Note that LibAiff will do the <strong>endian conversion</strong> automatically, so the samples will be in native endian form.
@@ -480,22 +478,22 @@ extract all of the sound on an Audio IFF file by simply doing repeated calls in 
 </p>
 <h2 id="section10">10. Reading sound samples: the normal mode</h2>
 <pre>
-int AIFF_ReadSamples32Bit(AIFF_ReadRef r,int32_t* samples,int nsamples) ;
+int AIFF_ReadSamples32Bit(AIFF_Ref r,int32_t* samples,int nsamples) ;
+int AIFF_ReadSamplesFloat(AIFF_Ref r,float* samples,int nsamples) ;
 </pre>
 <p>
-Use this function to avoid dealing with segments, multiple sample sizes or byte order: it will convert and provide
-samples into 32-bit (4-byte) signed values.
+Use this function to avoid dealing with segments, multiple sample sizes or byte order: it will provide
+samples into 32-bit (4-byte) signed values or floating-point values (respectively). If the samples are not stored in the requested format in the file, LibAiff will do the necessary conversions.
 </p>
 <p>
 <tt>nsamples</tt> is the <strong>number of sample points</strong> you want to read. <tt>samples</tt> is an array
-of 32-bit signed values.
+of 32-bit signed values or floating-point values (respectively).
 </p>
 <p>
 The function will return the n. of sample points read from the file. If the returned value is <strong>0</strong>, no more samples are present on the file. If it`s <strong>-1</strong>, an error occurred.
 </p>
 <p>
-The sampling rate of the samples is provided using the <a href="#section8">AIFF_GetSoundFormat</a> function.
-You have to call that function before using this one.
+The sampling rate of the samples is provided using the <a href="#section8">AIFF_GetAudioFormat</a> function.
 </p>
 <p>
 Each call of this function will advance the current reading position, so you can
@@ -503,7 +501,7 @@ extract all of the sound on an Audio IFF file by simply doing repeated calls in 
 </p>
 <h2 id="section11">11. Seeking</h2>
 <pre>
-int AIFF_Seek(AIFF_ReadRef r,uint32_t sampleFrame) ;
+int AIFF_Seek(AIFF_Ref r,uint64_t sampleFrame) ;
 </pre>
 <p>
 Use this function if you want to seek to a given <strong>sample frame</strong> into the file.
@@ -526,7 +524,7 @@ if( AIFF_Seek( ref,sampleFrame ) &lt; 1 )
 }
 </pre>
 <p>
-Of course this function is valid both from <a href="#section9">AIFF_ReadSamples</a> and <a href="#section10">AIFF_ReadSamples32Bit</a> methods.
+Of course calling this function is valid both when using <a href="#section9">AIFF_ReadSamples</a> and <a href="#section10">AIFF_ReadSamples32Bit/AIFF_ReadSamplesFloat</a> methods.
 </p>
 <p>
 This function will return as usual.
@@ -534,13 +532,13 @@ This function will return as usual.
 <h2 id="section12">12. Writing sound data</h2>
 <p>
 <pre>
-int AIFF_StartWritingSamples(AIFF_WriteRef w) ;
+int AIFF_StartWritingSamples(AIFF_Ref w) ;
 
-int AIFF_WriteSamples(AIFF_WriteRef w,void* buffer,size_t len) ;
+int AIFF_WriteSamples(AIFF_Ref w,void* buffer,size_t len) ;
 
-int AIFF_WriteSamples32Bit(AIFF_WriteRef w,int32_t* samples,int nsamples) ;
+int AIFF_WriteSamples32Bit(AIFF_Ref w,int32_t* samples,int nsamples) ;
 
-int AIFF_EndWritingSamples(AIFF_WriteRef w) ;
+int AIFF_EndWritingSamples(AIFF_Ref w) ;
 </pre>
 <p>
 To start writing sound data, use the <tt>AIFF_StartWritingSamples</tt> function which will return as usual.
@@ -561,7 +559,7 @@ It will return as usual.
 </p>
 <h3 id="section12b">The normal method for writing sound</h3>
 <p>
-This is the preferred method to write samples to an Audio IFF file. <strong>It will convert automatically the samples</strong> to the values specified to the <a href="#section8">AIFF_SetSoundFormat</a> function (which should be called before this one) and will automatically align the samples on segments and deal with the byte-order.</p>
+This is the preferred method to write samples to an Audio IFF file. <strong>It will convert automatically the samples</strong> to the values specified to the <a href="#section8">AIFF_SetAudioFormat</a> function (which should be called before this one) and will automatically align the samples on segments and deal with the byte-order.</p>
 <p>
 <tt>nsamples</tt> is the number of samples you want to write.
 </p>
@@ -593,13 +591,13 @@ In example, you can store a marker to the position <strong>0:28:13</strong> with
 These are the functions used to read &amp; write markers:
 </p>
 <pre>
-int AIFF_ReadMarker(AIFF_ReadRef r,int* id,uint32_t* position,char** name) ;
+int AIFF_ReadMarker(AIFF_Ref r,int* id,uint32_t* position,char** name) ;
 
-int AIFF_StartWritingMarkers(AIFF_WriteRef w) ;
+int AIFF_StartWritingMarkers(AIFF_Ref w) ;
 
-int AIFF_WriteMarker(AIFF_WriteRef w,uint32_t position,char* name) ;
+int AIFF_WriteMarker(AIFF_Ref w,uint32_t position,char* name) ;
 
-int AIFF_EndWritingMarkers(AIFF_WriteRef w) ;
+int AIFF_EndWritingMarkers(AIFF_Ref w) ;
 </pre>
 <h3>Reading markers</h3>
 <p>
@@ -713,7 +711,7 @@ To extract the data from a AIFF file you can use the following function:
 </p>
 
 <pre>
-int AIFF_GetInstrumentData(AIFF_ReadRef r,Instrument* ins) ;
+int AIFF_GetInstrumentData(AIFF_Ref r,Instrument* ins) ;
 </pre>
 
 <p>
