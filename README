@@ -1,6 +1,15 @@
 $Id$
 
-1. Compilation and installation of LibAiff
+-----------------------------------------------------------
+TABLE OF CONTENTS
+	1. Compilation and installation of LibAiff on UNIX
+	   systems
+	2. Compilation of LibAiff with Microsoft Visual C
+	3. Using the library
+	4. Reporting bugs, submitting patches, etc.
+-----------------------------------------------------------
+	
+1. Compilation and installation of LibAiff on UNIX systems
 		
 		The default prefix for LIBAIFF installation
 		is `/usr/local'. Prefix means that libraries
@@ -35,7 +44,13 @@ $Id$
 	# cp MANUAL* /usr/local/share/doc/libaiff/
 
 
-2. Using the library
+2. Compilation of LibAiff with Microsoft Visual C
+	To compile LibAiff you need to provide a <libaiff/config.h> file.
+	LibAiff provides an example <libaiff/config.vc.h> file that you
+	can simply rename to <libaiff/config.h> in order to compile LibAiff
+	with Visual C.
+
+3. Using the library
 
 		Please refer to the provided documentation,
 		available in different formats:
@@ -43,7 +58,7 @@ $Id$
 	MANUAL: ASCII text/plain version
 	MANUAL.html: HTML text/html UTF-8 version
 
-3. Reporting bugs, submitting patches, etc.
+4. Reporting bugs, submitting patches, etc.
 
 	Current LibAiff mantainer:
 		<marcotrillo@gmail.com>
