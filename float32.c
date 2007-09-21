@@ -155,13 +155,8 @@ float32_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	size_t bytes_in;
 	size_t bytesToRead;
 
-	n = (int) len;
-	/* 'n' should be divisible by 4 (32 bits) */
-	while (n >= 0 && ((n & 3) != 0)) {
-		--n;
-		--len;
-	}
-	n >>= 2;
+	n = (int) len >> 2;
+	len &= ~3;
 	
 	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(len, slen);
