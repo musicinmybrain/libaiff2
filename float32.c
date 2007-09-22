@@ -336,22 +336,19 @@ done:
 static int
 ieee754_native(void)
 {
-	float f = IEEE754_TEST_VALUE, *ptr;
-	uint32_t sf, *hw;
-	
-	if (sizeof(float) != sizeof(uint32_t))
+	union {
+		uint32_t w;
+		float f;
+	} u;
+	uint32_t t;
+
+	if (sizeof(u) != sizeof(uint32_t) || 
+	    sizeof(u) != sizeof(float))
 		return (0);
+	u.f = IEEE754_TEST_VALUE;
+	t = ieee754_write_single(IEEE754_TEST_VALUE);
 	
-	sf = ieee754_write_single(f);
-	ptr = &f;
-	hw = (uint32_t *) ptr;
-	
-	if (sf == *hw)
-		return (1);
-	else
-		return (0);
-	
-	return (0); /* NOTREACHED */
+	return (u.w == t);
 }
 
 
