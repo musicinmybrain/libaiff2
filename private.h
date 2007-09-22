@@ -142,7 +142,7 @@ struct decoder {
 	size_t (*read_lpcm)(AIFF_Ref, void *, size_t);
 	int (*read_float32)(AIFF_Ref, float *, int);
 	int (*seek)(AIFF_Ref, uint64_t);
-	void (*delete) (AIFF_Ref);
+	void (*destroy) (AIFF_Ref);
 };
 
 /* iff.c */

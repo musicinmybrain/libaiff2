@@ -262,8 +262,8 @@ Unprepare (AIFF_Ref r)
 	
 	if (r->stat == 1) {
 		dec = r->decoder;
-		if (dec->delete)
-			dec->delete(r);
+		if (dec->destroy)
+			dec->destroy(r);
 	}
 	r->stat = 0;
 }
