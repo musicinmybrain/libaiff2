@@ -3,8 +3,8 @@
  * Sample <config.h> file for Microsoft platforms
  */
 
-typedef unsigned __int64_t 	uint64_t;
-typedef __int64_t 		int64_t;
+typedef unsigned __int64	uint64_t;
+typedef __int64 		int64_t;
 typedef unsigned int		uint32_t;
 typedef signed int 		int32_t;
 typedef unsigned short 		uint16_t;
