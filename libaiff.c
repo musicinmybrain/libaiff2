@@ -175,7 +175,6 @@ AIFF_ReadMarker(AIFF_Ref r, int *id, uint64_t * pos, char **name)
 {
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
-	Unprepare(r);
 	
 	switch (r->format) {
 	case AIFF_TYPE_AIFF:
