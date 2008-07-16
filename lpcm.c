@@ -38,25 +38,36 @@
 #include <sys/types.h>
 #endif
 
-void 
-lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples)
-{
-	register int n = nsamples;
-	register int i;
-	/* 8 bit */
-	uint8_t *fubytes = (uint8_t *) from;
-	uint8_t *ubytes = (uint8_t *) to;
-	/* 16 bit */
-	int16_t *fwords = (int16_t *) from;
-	int16_t *words = (int16_t *) to;
-	/* 32 bit */
-	int32_t *fdwords = (int32_t *) from;
-	int32_t *dwords = (int32_t *) to;
-	/* 24 bit */
-	uint8_t x, y, z;
 
+#if !defined(HAVE_OPTIMIZED_SWAP)
+void
+lpcm_swap16(int16_t *dstSamples, const int16_t *srcSamples, int nSamples)
+{
+	int i;
+
+	for (i = 0; i < nSamples; ++i) {
+		dstSamples[i] = ARRANGE_ENDIAN_16(srcSamples[i]);
+	}
+}
+
+void
+lpcm_swap32(int32_t *dstSamples, const int32_t *srcSamples, int nSamples)
+{
+	int i;
+
+	for (i = 0; i < nSamples; ++i) {
+		dstSamples[i] = ARRANGE_ENDIAN_32(srcSamples[i]);
+	}
+}
+#endif /* !HAVE_OPTIMIZED_SWAP */
+
+
+
+void 
+lpcm_swap_samples(int segmentSize, int flags, const void *from, void *to, int nsamples)
+{
 	/*
-	 * Do we really need to do something?
+	 * Do we really need to do anything?
 	 */
 	if (from == to && !(flags & LPCM_NEED_SWAP))
 		return;
@@ -64,15 +75,21 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 	switch (segmentSize) {
 	case 2:
 		if (flags & LPCM_NEED_SWAP) {
-			for (i = 0; i < n; ++i)
-				words[i] = ARRANGE_ENDIAN_16(fwords[i]);
+			lpcm_swap16(to, from, nsamples);
 		} else {
-			memmove(words, fwords, n << 1 /* n * 2 */);
+			memmove(to, from, nsamples * sizeof(int16_t));
 		}
 		break;
 	case 3:
 		if (flags & LPCM_NEED_SWAP) {
-			n *= 3;
+			int i, n;
+			const uint8_t *fubytes = from;
+			uint8_t x, y, z, *ubytes = to;
+
+			/*
+			 * XXX -- this is gross.
+			 */
+			n = nsamples * 3;
 			for (i = 0; i < n; i += 3) {
 				x = fubytes[i];
 				y = fubytes[i + 1];
@@ -82,17 +99,15 @@ lpcm_swap_samples(int segmentSize, int flags, void *from, void *to, int nsamples
 				ubytes[i + 1] = y;
 				ubytes[i + 2] = x;
 			}
-			n /= 3;
 		} else {
-			memmove(ubytes, fubytes, n * 3);
+			memmove(to, from, nsamples * 3);
 		}
 		break;
 	case 4:
 		if (flags & LPCM_NEED_SWAP) {
-			for (i = 0; i < n; ++i)
-				dwords[i] = ARRANGE_ENDIAN_32(fdwords[i]);
+			lpcm_swap32(to, from, nsamples);
 		} else {
-			memmove(dwords, fdwords, n << 2 /* n * 4 */);
+			memmove(to, from, nsamples * sizeof(int32_t));
 		}
 		break;
 	}

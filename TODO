@@ -8,14 +8,6 @@ To-do-list:
 	* Implementing <comments> for each <marker>
 	  (with timestamp, etc.).
 	  
-	* A more intense beta-testing, specially on little-endian
-	  platforms (AIFF is a big-endian format).
-	  Some LibAiff features were tested only on big-endian,
-	  although they should work well on little-endian there may
-	  be some bugs...
-
-        * Beta-testing on AIFC files.
-
 	* Implementing some compression formats for AIFC
 		[*] u-Law implemented as of 2.99.
 		    Needs more testing.

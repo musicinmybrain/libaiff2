@@ -5,13 +5,15 @@ RANLIB = @RANLIB@
 AR = ar
 CFLAGS = @DEFS@ -I. -Ilibaiff -g -O2 -ansi -pedantic -Wall -Wfloat-equal -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-align -Wwrite-strings -Wsign-compare -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wno-unreachable-code
 
-# for GCC4. comment for GCC3
-CFLAGS += -Wextra -Wmissing-field-initializers -Wno-discard-qual
-
 prefix = @prefix@
 
 objs = iff.o aifx.o lpcm.o g711.o \
        float32.o libaiff.o extended.o pascal.o
+
+# Uncomment this for PowerPC.
+#CFLAGS += -DHAVE_OPTIMIZED_SWAP
+#objs += swap_ppc.o
+
 
 all: libaiff.a
 
@@ -46,5 +48,9 @@ cleanall: clean cleanconfig
 .c.o:
 	@echo "#	compiling $@"
 	$(CC) $(CFLAGS) -c $< -o $@
+
+.S.o:
+	@echo "#	assembling $@"
+	$(CC) -c $< -o $@
 
 

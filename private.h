@@ -159,7 +159,9 @@ int do_aifx_prepare(AIFF_Ref r) ;
 char * get_aifx_enc_name(IFFType) ;
 
 /* lpcm.c */
-void lpcm_swap_samples(int,int,void*,void*,int);
+void lpcm_swap16(int16_t *, const int16_t *, int);
+void lpcm_swap32(int32_t *, const int32_t *, int);
+void lpcm_swap_samples(int,int,const void*,void*,int);
 void lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames);
 extern struct decoder lpcm;
 

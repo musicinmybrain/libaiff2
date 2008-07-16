@@ -140,10 +140,7 @@ float32_decode(void *dst, void *src, int n)
 static void
 float32_swap_samples(void *buffer, int n)
 {
-	uint32_t *streams = (uint32_t *) buffer;
-
-	while (n-- > 0)
-		streams[n] = ARRANGE_ENDIAN_32(streams[n]);
+	lpcm_swap32(buffer, buffer, n);
 }
 
 static size_t 

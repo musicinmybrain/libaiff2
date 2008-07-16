@@ -29,6 +29,13 @@ TABLE OF CONTENTS
 		selected prefix.
 
 	% ./configure
+		
+		After autoconfiguration is completed, it is 
+		recommended to manually inspect the Makefile
+		to review the compilation options. For example,
+		some optimized routines are available for
+		PowerPC.
+
 	% make
 	# make install
 
