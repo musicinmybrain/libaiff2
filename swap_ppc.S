@@ -27,6 +27,8 @@
  */
 
 
+	.text
+
 /*
  * 	void lpcm_swap16(int16_t *dstSamples, 
  *	                 const int16_t *srcSamples,
@@ -35,16 +37,22 @@
 	.globl	lpcm_swap16
 	.align	2
 lpcm_swap16:
+	rlwinm	%r6, %r5, 1, 0, 30
 	li	%r8, 0
 1:
-	cmpw	%r8, %r5
-	beq	2f
-	lhbrx	%r9, 0, %r4
-	addi	%r8, %r8, 1
-	sth	%r9, 0(%r3)
-	addi	%r4, %r4, 2
-	addi	%r3, %r3, 2
+	sub	%r7, %r6, %r8
+	cmpwi	%r7, 4
+	blt	2f
+	lwbrx	%r9, %r8, %r4
+	rlwinm	%r10, %r9, 16, 0, 31
+	stwx	%r10, %r8, %r3
+	addi	%r8, %r8, 4
 	b	1b
+2:
+	cmpwi	%r7, 0
+	beq	2f
+	lhbrx	%r9, %r8, %r4
+	sthx	%r9, %r8, %r3
 2:
 	blr
 
@@ -57,17 +65,17 @@ lpcm_swap16:
 	.globl lpcm_swap32
 	.align 2
 lpcm_swap32:
+	rlwinm	%r6, %r5, 2, 0, 29
 	li	%r8, 0
 1:
-	cmpw	%r8, %r5
+	cmpw	%r6, %r8
 	beq	2f
-	lwbrx	%r9, 0, %r4
-	addi	%r8, %r8, 1
-	stw	%r9, 0(%r3)
-	addi	%r4, %r4, 4
-	addi	%r3, %r3, 4
+	lwbrx	%r9, %r8, %r4
+	stwx	%r9, %r8, %r3
+	addi	%r8, %r8, 4
 	b	1b
 2:
 	blr
+
 
 
