@@ -67,10 +67,8 @@ init_aifx(AIFF_Ref r)
 	r->samplingRate = sRate;
 	r->bitsPerSample = (int) p.sampleSize;
 
-	bps = (int) (p.sampleSize);
-	wSegmentSize = bps >> 3;	/* bps / 8 */
-	if (bps & 7)	/* if( bps % 8 != 0 ) */
-		++wSegmentSize;
+	bps = p.sampleSize;
+	wSegmentSize = (bps + 7) >> 3;
 	r->segmentSize = wSegmentSize;
 
 	if (len >= 22 && r->format == AIFF_TYPE_AIFC) {

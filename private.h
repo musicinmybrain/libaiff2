@@ -1,4 +1,4 @@
-/* 	$Id$ */
+/* $Id$ */
 
 #if !defined(HAVE_MEMSET) && defined(HAVE_BZERO)
 #ifdef HAVE_STRINGS_H
@@ -22,9 +22,15 @@
 #undef ASSERT
 #endif
 
-void AIFFAssertionFailed (const char*, int);
+void            AIFFAssertionFailed(const char *, int);
 
 #define ASSERT(x) if(!(x)) AIFFAssertionFailed(__FILE__, __LINE__)
+
+/* private flags */
+#define F_IEEE754_CHECKED	(1 << 27)
+#define F_IEEE754_NATIVE	(1 << 28)
+#define SSND_REACHED		(1 << 29)
+
 
 /* == Supported formats == */
 
@@ -60,109 +66,104 @@ void AIFFAssertionFailed (const char*, int);
 /* Standards & specifications */
 #define AIFC_STD_DRAFT_082691	2726318400U
 
-struct s_IFFHeader
-{
-	IFFType hid ;
-	uint32_t len ;
-	IFFType fid ;
-} ;
-typedef struct s_IFFHeader IFFHeader ;
+struct s_IFFHeader {
+	IFFType         hid;
+	uint32_t        len;
+	IFFType         fid;
+};
+typedef struct s_IFFHeader IFFHeader;
 
-struct s_IFFChunk
-{
-	IFFType id ;
-	uint32_t len ;
-} ;
-typedef struct s_IFFChunk IFFChunk ;
+struct s_IFFChunk {
+	IFFType         id;
+	uint32_t        len;
+};
+typedef struct s_IFFChunk IFFChunk;
 
 /*
- * WARNING: this struct is not alignment-safe!
+ * WARNING: these structures do NOT match on-file record layout!
  */
-struct s_AIFFCommon
-{
-	uint16_t numChannels ;
-	uint32_t numSampleFrames ;
-	uint16_t sampleSize ;
-	iext sampleRate ; /* Motorola 80-bit extended */
-} ;
-typedef struct s_AIFFCommon CommonChunk ;
+struct s_AIFFCommon {
+	uint32_t        numSampleFrames;
+	uint16_t        numChannels;
+	uint16_t        sampleSize;
+};
+typedef struct s_AIFFCommon CommonChunk;
 
-struct s_AIFFSound
-{
-	uint32_t offset ;
-	uint32_t blockSize ;
-} ;
-typedef struct s_AIFFSound SoundChunk ;
+struct s_AIFFSound {
+	uint32_t        offset;
+	uint32_t        blockSize;
+};
+typedef struct s_AIFFSound SoundChunk;
 
-struct s_Marker
-{
-	MarkerId id ;
-	uint32_t position ;
-	uint8_t markerNameLen ;
-	char markerName ;
-} ;
-typedef struct s_Marker Marker ;
+struct s_Marker {
+	uint32_t        position;
+	MarkerId        id;
+	uint16_t	garbage;
+};
+typedef struct s_Marker Marker;
 
-struct s_AIFFMarker
-{
-	uint16_t numMarkers ;
-	char markers ;
-} ;
-typedef struct s_AIFFMarker MarkerChunk ;
+struct s_AIFFMarker {
+	uint16_t        numMarkers;
+};
+typedef struct s_AIFFMarker MarkerChunk;
 
-struct s_AIFFLoop
-{
-	int16_t playMode ;
-	MarkerId beginLoop ;
-	MarkerId endLoop ;
-	uint16_t garbage ; /* not read (size=6 bytes) */
-} ;
-typedef struct s_AIFFLoop AIFFLoop ;
+struct s_AIFFLoop {
+	int16_t         playMode;
+	MarkerId        beginLoop;
+	MarkerId        endLoop;
+	uint16_t        garbage;/* not read (size=6 bytes) */
+};
+typedef struct s_AIFFLoop AIFFLoop;
 
 
-struct s_Comment
-{
-	uint32_t timeStamp ;
-	MarkerId marker ;
-	uint16_t count ;
-	char text ;
-} ;
-typedef struct s_Comment Comment ;
+struct s_Comment {
+	uint32_t        timeStamp;
+	MarkerId        marker;
+	uint16_t        count;
+};
+typedef struct s_Comment Comment;
 
-struct s_AIFFComment
-{
-	uint16_t numComments ;
-	char comments ;
-} ;
-typedef struct s_AIFFComment CommentChunk ;
+struct s_AIFFComment {
+	uint16_t        numComments;
+};
+typedef struct s_AIFFComment CommentChunk;
 
 struct decoder {
-	IFFType fmt;
-	int (*construct) (AIFF_Ref);
-	size_t (*read_lpcm)(AIFF_Ref, void *, size_t);
-	int (*read_float32)(AIFF_Ref, float *, int);
-	int (*seek)(AIFF_Ref, uint64_t);
-	void (*destroy) (AIFF_Ref);
+	IFFType         fmt;
+	int             (*construct) (AIFF_Ref);
+        size_t		(*read_lpcm) (AIFF_Ref, void *, size_t);
+	int             (*read_float32) (AIFF_Ref, float *, int);
+	int             (*seek) (AIFF_Ref, uint64_t);
+	void            (*destroy) (AIFF_Ref);
 };
 
 /* iff.c */
-int find_iff_chunk(IFFType, AIFF_Ref, uint32_t *) ;
-char* get_iff_attribute(AIFF_Ref r,IFFType attrib) ;
-int set_iff_attribute(AIFF_Ref w,IFFType attrib,char* str) ;
-int clone_iff_attributes(AIFF_Ref w, AIFF_Ref r) ;
+int 
+find_iff_chunk(IFFType, AIFF_Ref, uint32_t *);
+char           *
+get_iff_attribute(AIFF_Ref r, IFFType attrib);
+int 
+set_iff_attribute(AIFF_Ref w, IFFType attrib, char *str);
+int 
+clone_iff_attributes(AIFF_Ref w, AIFF_Ref r);
 
 /* aifx.c */
-int init_aifx(AIFF_Ref) ;
-int read_aifx_marker(AIFF_Ref r,int* id,uint64_t* position,char** name) ;
-int get_aifx_instrument(AIFF_Ref r,Instrument* inpi) ;
-int do_aifx_prepare(AIFF_Ref r) ;
-char * get_aifx_enc_name(IFFType) ;
+int 
+init_aifx(AIFF_Ref);
+int 
+read_aifx_marker(AIFF_Ref r, int *id, uint64_t * position, char **name);
+int 
+get_aifx_instrument(AIFF_Ref r, Instrument * inpi);
+int 
+do_aifx_prepare(AIFF_Ref r);
+char           *
+get_aifx_enc_name(IFFType);
 
 /* lpcm.c */
-void lpcm_swap16(int16_t *, const int16_t *, int);
-void lpcm_swap32(int32_t *, const int32_t *, int);
-void lpcm_swap_samples(int,int,const void*,void*,int);
-void lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames);
+void            lpcm_swap16(int16_t *, const int16_t *, int);
+void            lpcm_swap32(int32_t *, const int32_t *, int);
+void            lpcm_swap_samples(int, int, const void *, void *, int);
+void            lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames);
 extern struct decoder lpcm;
 
 /* g711.c */
@@ -173,13 +174,11 @@ extern struct decoder alaw;
 extern struct decoder float32;
 
 /* extended.c */
-void ieee754_write_extended (double, uint8_t*);
-double ieee754_read_extended (uint8_t*);
+void            ieee754_write_extended(double, uint8_t *);
+double          ieee754_read_extended(uint8_t *);
 
 /* pascal.c */
-int PASCALInGetLength (FILE *);
-char * PASCALInRead (FILE *, int *);
-int PASCALOutGetLength (char *);
-int PASCALOutWrite (FILE *, char *);
-
-
+int             PASCALInGetLength(FILE *);
+char           *PASCALInRead(FILE *, int *);
+int             PASCALOutGetLength(char *);
+int             PASCALOutWrite(FILE *, char *);

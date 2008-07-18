@@ -34,12 +34,6 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
-/*
- * private flags for this module
- */
-#define F_IEEE754_CHECKED	(1<<27)
-#define F_IEEE754_NATIVE	(1<<28)
-
 
 /*
  * IEEE-754 32-bit single-precision floating point

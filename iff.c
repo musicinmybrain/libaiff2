@@ -35,11 +35,6 @@
 #include "private.h"
 
 /*
- * private flags for this module
- */
-#define SSND_REACHED	(1<<29)
-
-/*
  * Find an IFF chunk. Return 1 (found) or 0 (not found / error).
  * If found, update 'length' to be the chunk length.
  */
@@ -93,8 +88,7 @@ find_iff_chunk(IFFType chunk, AIFF_Ref r, uint32_t * length)
 			/*
 			 * In IFF files chunk start offsets must be even.
 			 */
-			if (l & 1)	/* if( l % 2 != 0 ) */
-				++l;
+			l += l & 1;
 
 			/* skip this chunk */
 			if (!(r->flags & F_NOTSEEKABLE)) {
@@ -151,7 +145,6 @@ get_iff_attribute(AIFF_Ref r, IFFType attrib)
 int 
 set_iff_attribute(AIFF_Ref w, IFFType attrib, char *str)
 {
-	uint8_t car = 0x0;
 	IFFChunk chk;
 	uint32_t len = strlen(str);
 	
@@ -168,10 +161,8 @@ set_iff_attribute(AIFF_Ref w, IFFType attrib, char *str)
 	 * as required by the IFF specification.
 	 */
 	if (len & 1) {
-		if (fwrite(&car, 1, 1, w->fd) < 1) {
-			return -1;
-		}
-		(w->len)++;
+		putc(0, w->fd);
+		w->len++;
 	}
 	w->len += 8 + len;
 

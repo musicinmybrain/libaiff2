@@ -1,4 +1,4 @@
-/*	$Id$ */
+/*	$Id$	*/
 
 /*-
  * Copyright (c) 2005, 2006, 2007 Marco Trillo
@@ -462,10 +462,7 @@ err0:
 		return NULL;
 	}
 
-	/*
-	 * Simultaneous open for reading & writing
-	 */
-	w->fd = fopen(file, "w+b");
+	w->fd = fopen(file, "wb");
 	if (w->fd == NULL) {
 err1:
 		free(w);
@@ -659,9 +656,8 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	w->len += 8;
 	w->commonOffSet = w->len;
 	w->len += ckLen;
-	w->segmentSize = bitsPerSample >> 3;
-	if (bitsPerSample & 7)
-		++(w->segmentSize);
+	w->segmentSize = (bitsPerSample + 7) >> 3;
+	w->nChannels = channels;
 	w->stat = 1;
 
 	return 1;
@@ -850,17 +846,12 @@ AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int nsamples)
 	return DoWriteSamples(w, buffer, len, 0);
 }
 
-/*
- * WARNING: do not mix fread() & fwrite(), use fseek() before !
- */
 int 
 AIFF_EndWritingSamples(AIFF_Ref w)
 {
-	uint32_t segment;
-	long of;
 	IFFChunk chk;
-	CommonChunk c;
-	uint32_t len, curpos;
+	long of;
+	uint32_t curpos, numSampleFrames;
 
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
@@ -870,27 +861,19 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	DestroyBuffer(w);
 	if (w->sampleBytes & 1) {
 		fputc(0, w->fd);
-		++(w->sampleBytes);
-		++(w->len);
+		w->sampleBytes++;
+		w->len++;
 	}
 	/*
 	 * XXX: AIFF files are 32-bit
 	 */
 	curpos = (uint32_t) (w->len) + 8;
 
-	of = (long) (w->soundOffSet);
-	if (fseek(w->fd, of, SEEK_SET) < 0) {
-		return -1;
-	}
-	if (fread(&chk, 1, 8, w->fd) < 8) {
-		return -1;
-	}
-	if (chk.id != ARRANGE_BE32(AIFF_SSND)) {
-		return -1;
-	}
-	len = ARRANGE_BE32(chk.len);
-	len += (uint32_t) (w->sampleBytes);
-	chk.len = ARRANGE_BE32(len);
+	of = w->soundOffSet;
+	
+	chk.id = ARRANGE_BE32(AIFF_SSND);
+	chk.len = w->sampleBytes + 8;
+	chk.len = ARRANGE_BE32(chk.len);
 
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
@@ -898,42 +881,20 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	if (fwrite(&chk, 1, 8, w->fd) < 8) {
 		return -1;
 	}
-	of = (long) (w->commonOffSet);
-	if (fseek(w->fd, of, SEEK_SET) < 0) {
-		return -1;
-	}
-	if (fread(&chk, 1, 8, w->fd) < 8) {
-		return -1;
-	}
-	
-	if (chk.id != ARRANGE_BE32(AIFF_COMM)) {
-		return -1;
-	}
-	if (fread(&(c.numChannels), 1, 2, w->fd) < 2
-	    || fread(&(c.numSampleFrames), 1, 4, w->fd) < 4
-	    || fread(&(c.sampleSize), 1, 2, w->fd) < 2) {
-		return -1;
-	}
-	/* Correct the data of the chunk */
-	c.numChannels = ARRANGE_BE16(c.numChannels);
-	c.sampleSize = ARRANGE_BE16(c.sampleSize);
-	segment = w->segmentSize;
 
-	c.numSampleFrames = ((uint32_t) (w->sampleBytes) / c.numChannels) / segment;
-	c.numChannels = ARRANGE_BE16(c.numChannels);
-	c.numSampleFrames = ARRANGE_BE32(c.numSampleFrames);
-	c.sampleSize = ARRANGE_BE16(c.sampleSize);
+	numSampleFrames = (w->sampleBytes / w->nChannels) / w->segmentSize;
+	numSampleFrames = ARRANGE_BE32(numSampleFrames);
 
 	/* Write out */
-	of += 10;
+	of = w->commonOffSet + 10;
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
-	if (fwrite(&(c.numSampleFrames), 1, 4, w->fd) < 4) {
+	if (fwrite(&numSampleFrames, 1, 4, w->fd) < 4) {
 		return -1;
 	}
 	/* Return back to current position in the file. */
-	of = (long) curpos;
+	of = curpos;
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
@@ -1013,7 +974,6 @@ AIFF_WriteMarker(AIFF_Ref w, uint64_t position, char *name)
 int 
 AIFF_EndWritingMarkers(AIFF_Ref w)
 {
-	IFFType ckid;
 	uint32_t cklen, curpos;
 	long offSet;
 	uint16_t nMarkers;
@@ -1023,30 +983,19 @@ AIFF_EndWritingMarkers(AIFF_Ref w)
 	if (w->stat != 4)
 		return -1;
 
-	curpos = (uint32_t) (w->len) + 8;
-	cklen = (uint32_t) (w->len);
-	cklen -= (uint32_t) (w->markerOffSet);
+	curpos = w->len + 8;
+	cklen = w->len - w->markerOffSet;
 	cklen = ARRANGE_BE32(cklen);
 
-	offSet = (long) (w->markerOffSet);
-	if (fseek(w->fd, offSet, SEEK_SET) < 0) {
-		return -1;
-	}
-	if (fread(&ckid, 1, 4, w->fd) < 4)
-		return -1;
-
-	if (ckid != ARRANGE_BE32(AIFF_MARK)) {
-		return -1;
-	}
+	offSet = w->markerOffSet;
 	
 	/*
 	 * Correct the chunk length
 	 * and the nMarkers field
 	 */
-	nMarkers = (uint16_t) (w->markerPos);
+	nMarkers = w->markerPos;
 	nMarkers = ARRANGE_BE16(nMarkers);
 
-	/* XXX: this is bogus, but required by this API */
 	if (fseek(w->fd, offSet + 4, SEEK_SET) < 0) {
 		return -1;
 	}
@@ -1069,27 +1018,16 @@ AIFF_WriteClose(AIFF_Ref w)
 	int ret = 1;
 	IFFHeader hdr;
 
-	if (w->stat != 3) {
+	if (w->stat != 3)
 		ret = 2;
-	}
-	if (fseek(w->fd, 0, SEEK_SET) < 0) {
-		fclose(w->fd);
-		free(w);
-		return -1;
-	}
-	if (fread(&hdr, 1, 12, w->fd) < 12) {
-		fclose(w->fd);
-		free(w);
-		return -1;
-	}
-	if (hdr.hid != ARRANGE_BE32(AIFF_FORM)) {
-		fclose(w->fd);
-		free(w);
-		return -1;
-	}
-	/* Fix the 'length' field */
-	hdr.len = (uint32_t) (w->len);
+	
+	hdr.hid = ARRANGE_BE32(AIFF_FORM);
+	hdr.len = w->len;
 	hdr.len = ARRANGE_BE32(hdr.len);
+	if (w->flags & F_AIFC)
+		hdr.fid = ARRANGE_BE32(AIFF_AIFC);
+	else
+		hdr.fid = ARRANGE_BE32(AIFF_AIFF);
 
 	if (fseek(w->fd, 0, SEEK_SET) < 0) {
 		fclose(w->fd);

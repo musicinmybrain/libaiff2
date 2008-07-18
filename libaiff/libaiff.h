@@ -51,7 +51,6 @@
 
 /* == Typedefs == */
 typedef uint32_t IFFType ;
-typedef uint8_t iext ;
 typedef uint16_t MarkerId ;
 
 /* Struct for AIFF I/O functions */
