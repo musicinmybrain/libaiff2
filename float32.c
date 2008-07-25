@@ -324,6 +324,9 @@ done:
 /*
  * ieee754_native(): check if host supports single-precision IEEE-754 natively
  */
+#ifdef HAVE_INTEL_80x87
+# define ieee754_native()       (1)
+#else
 static int
 ieee754_native(void)
 {
@@ -341,7 +344,7 @@ ieee754_native(void)
 	
 	return (u.w == t);
 }
-
+#endif
 
 /*
  * Read IEEE Single Precision Numbers
