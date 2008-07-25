@@ -175,7 +175,7 @@ extern struct decoder float32;
 
 /* extended.c */
 void            ieee754_write_extended(double, uint8_t *);
-double          ieee754_read_extended(uint8_t *);
+double          ieee754_read_extended(const uint8_t *);
 
 /* pascal.c */
 int             PASCALInGetLength(FILE *);

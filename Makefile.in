@@ -10,10 +10,13 @@ prefix = @prefix@
 objs = iff.o aifx.o lpcm.o g711.o \
        float32.o libaiff.o extended.o pascal.o
 
-# Uncomment this for PowerPC.
+# Uncomment this on PowerPC.
 #CFLAGS += -DHAVE_OPTIMIZED_SWAP
 #objs += swap_ppc.o
 
+# Uncomment this on x86.
+#CFLAGS += -DHAVE_INTEL_80x87
+#objs += extended_x87.o
 
 all: libaiff.a
 

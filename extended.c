@@ -1,7 +1,7 @@
 /*	$Id$ */
 
 /*-
- * Copyright (c) 2005, 2006 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2005, 2006, 2008 by Marco Trillo <marcotrillo@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -26,9 +26,59 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/*
+ * These routines read/write 80-bit extended-precision floating point
+ * numbers in the format used by the Motorola 68881, Motorola 68882,
+ * Motorola 68040 and Intel 80x87 FPUs.
+ */
+
 #define LIBAIFF 1
 #include <libaiff/libaiff.h>
 #include "private.h"
+
+#ifdef HAVE_INTEL_80x87
+
+double x87_read_extended(const unsigned char *);
+void x87_write_extended(double, unsigned char *);
+
+static void
+byteswap(const uint8_t *buffer, uint8_t *data)
+{
+        uint16_t p;
+
+        /* XXX - big endian */
+        p = *((const uint16_t *) &buffer[8]);
+        *((uint16_t *) &data[0]) = ARRANGE_ENDIAN_16(p);
+        p = *((const uint16_t *) &buffer[6]);
+        *((uint16_t *) &data[2]) = ARRANGE_ENDIAN_16(p);
+        p = *((const uint16_t *) &buffer[4]);
+        *((uint16_t *) &data[4]) = ARRANGE_ENDIAN_16(p);
+        p = *((const uint16_t *) &buffer[2]);
+        *((uint16_t *) &data[6]) = ARRANGE_ENDIAN_16(p);
+        p = *((const uint16_t *) &buffer[0]);
+        *((uint16_t *) &data[8]) = ARRANGE_ENDIAN_16(p);
+}
+
+double
+ieee754_read_extended(const uint8_t *buffer)
+{
+        uint8_t data[10];
+
+        byteswap(buffer, data);
+        return x87_read_extended(data);
+}
+
+void
+ieee754_write_extended(double d, uint8_t *out)
+{
+        uint8_t data[10];
+
+        x87_write_extended(d, data);
+        byteswap(data, out);
+}
+
+#else /* HAVE_INTEL_80x87 */
+
 #include <math.h>
 #include <string.h>
 
@@ -140,7 +190,7 @@ done:
  * Read IEEE Extended Precision Numbers
  */
 double
-ieee754_read_extended(uint8_t* in)
+ieee754_read_extended(const uint8_t* in)
 {
 	int sgn, exp;
 	uint32_t low, high;
@@ -175,3 +225,7 @@ ieee754_read_extended(uint8_t* in)
 
 	return (sgn ? -out : out);
 }
+
+#endif /* ! HAVE_INTEL_80x87 */
+
+
