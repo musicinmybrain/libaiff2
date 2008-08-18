@@ -329,38 +329,27 @@ AIFF_Seek(AIFF_Ref r, uint64_t framePos)
 }
 
 int 
-AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nSamplePoints)
+AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int n)
 {
-	int n = nSamplePoints;
-	void *buffer;
 	int i, j;
-	size_t h;
-	size_t len;
-	int segmentSize;
-	int32_t *dwords;
-	int16_t *words;
-	int8_t *sbytes;
-	uint8_t *inbytes;
-	uint8_t *outbytes;
-	uint8_t x, y, z;
+	unsigned int h, len;
 
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
-	if (n % (r->nChannels) != 0)
+	if ((n % r->nChannels) != 0)
 		return 0;
-
-	if (n < 1 || r->segmentSize == 0) {
-		if (r->buffer) {
-			free(r->buffer);
-			r->buffer = NULL;
-			r->buflen = 0;
-		}
+	if (n < 1 || r->segmentSize == 0)
 		return -1;
-	}
-	segmentSize = r->segmentSize;
-	len = (size_t) n * segmentSize;
+	
+	len = n * r->segmentSize;
 
-	if ((r->buflen) < len) {
+	if (r->segmentSize == 4) {
+		h = AIFF_ReadSamples(r, samples, len);
+
+		return (h >> 2);
+	}
+
+	if (r->buflen < len) {
 		if (r->buffer)
 			free(r->buffer);
 		r->buffer = malloc(len);
@@ -369,67 +358,60 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int nSamplePoints)
 		}
 		r->buflen = len;
 	}
-	buffer = r->buffer;
 
-	h = AIFF_ReadSamples(r, buffer, len);
-	if (h < (size_t) segmentSize) {
-		free(r->buffer);
-		r->buffer = NULL;
-		r->buflen = 0;
+	h = AIFF_ReadSamples(r, r->buffer, len);
+	if (h < (unsigned)r->segmentSize)
 		return 0;
-	}
-	n = (int) h;
-	if (n % segmentSize != 0) {
-		free(r->buffer);
-		r->buffer = NULL;
-		r->buflen = 0;
+	if ((h % r->segmentSize) != 0)
 		return -1;
-	}
-	n /= segmentSize;
+	n = h / r->segmentSize;
 
-	switch (segmentSize) {
-	case 4:
-		dwords = (int32_t *) buffer;
-		for (i = 0; i < n; ++i)
-			samples[i] = dwords[i];
-		break;
+	switch (r->segmentSize) {
 	case 3:
-		inbytes = (uint8_t *) buffer;
-		outbytes = (uint8_t *) samples;
-		n <<= 2;	/* n *= 4 */
+	{
+		/* XXX -- this is gross. */
+		uint8_t *inbytes = (uint8_t *) r->buffer;
+		uint8_t *outbytes = (uint8_t *) samples;
 		j = 0;
 
-		for (i = 0; i < n; i += 4) {
-			x = inbytes[j++];
-			y = inbytes[j++];
-			z = inbytes[j++];
+		for (i = 0; i < n; ++i) {
 #ifdef WORDS_BIGENDIAN
-			outbytes[i] = x;
-			outbytes[i + 1] = y;
-			outbytes[i + 2] = z;
-			outbytes[i + 3] = 0;
+			outbytes[(i << 2) + 0] = inbytes[j + 0];
+			outbytes[(i << 2) + 1] = inbytes[j + 1];
+			outbytes[(i << 2) + 2] = inbytes[j + 2];
+			outbytes[(i << 2) + 3] = 0;
 #else
-			outbytes[i] = 0;
-			outbytes[i + 1] = x;
-			outbytes[i + 2] = y;
-			outbytes[i + 3] = z;
+			outbytes[(i << 2) + 0] = 0;
+			outbytes[(i << 2) + 1] = inbytes[j + 0];
+			outbytes[(i << 2) + 2] = inbytes[j + 1];
+			outbytes[(i << 2) + 3] = inbytes[j + 2];
 #endif
+			
+			j += 3;
 		}
 
-		n >>= 2;
 		break;
+	}
+
 	case 2:
-		words = (int16_t *) buffer;
+	{
+		int16_t *words = (int16_t *) r->buffer;
+		
 		for (i = 0; i < n; ++i) {
 			samples[i] = (int32_t) (words[i]) << 16;
 		}
 		break;
+	}
+
 	case 1:
-		sbytes = (int8_t *) buffer;
+	{
+		int8_t *sbytes = (int8_t *) r->buffer;
+		
 		for (i = 0; i < n; ++i) {
 			samples[i] = (int32_t) (sbytes[i]) << 24;
 		}
 		break;
+	}
 	}
 
 	return n;
@@ -781,66 +763,65 @@ AIFF_WriteSamples(AIFF_Ref w, void *samples, size_t len)
 
 
 int 
-AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int nsamples)
+AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int n)
 {
-	register int i, j;
-	register int n = nsamples;
+	int i, j;
+	unsigned int len;
 	void *buffer;
-	size_t len;
-	int32_t cursample;
-	int16_t *words;
-	int8_t *sbytes;
-	uint8_t *inbytes, *outbytes;
 
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
-	if (w->stat != 2 || w->segmentSize == 0 || n < 1) {
+	if (w->stat != 2 || w->segmentSize == 0 || n < 1)
 		return -1;
-	}
-	len = (size_t) n * w->segmentSize;
+	len = n * w->segmentSize;
 
+	if (w->segmentSize == 4)
+		return DoWriteSamples(w, samples, len, 1) >> 2;
+		
 	buffer = InitBuffer(w, len);
 	if (!buffer)
 		return -1;
 
 	switch (w->segmentSize) {
-	case 4:
-		memcpy(buffer, samples, n << 2); /* n * 4 */
-		break;
 	case 3:
-		inbytes = (uint8_t *) samples;
-		outbytes = (uint8_t *) buffer;
-		j = 0;
-		n *= 3;
-		for (i = 0; i < n; i += 3) {
+	{
+		/* XXX -- this is gross. */
+		uint8_t *inbytes = (uint8_t *) samples;
+		uint8_t *outbytes = (uint8_t *) buffer;
+		
+		for (i = 0, j = 0; i < n; ++i, j += 3) {
 #ifdef WORDS_BIGENDIAN
-			outbytes[i + 0] = inbytes[j++];
-			outbytes[i + 1] = inbytes[j++];
-			outbytes[i + 2] = inbytes[j++];
-			j++;
+			outbytes[j + 0] = inbytes[(i << 2) + 0];
+			outbytes[j + 1] = inbytes[(i << 2) + 1];
+			outbytes[j + 2] = inbytes[(i << 2) + 2];
 #else
-			j++;
-			outbytes[i + 0] = inbytes[j++];
-			outbytes[i + 1] = inbytes[j++];
-			outbytes[i + 2] = inbytes[j++];
+			outbytes[j + 0] = inbytes[(i << 2) + 1];
+			outbytes[j + 1] = inbytes[(i << 2) + 2];
+			outbytes[j + 2] = inbytes[(i << 2) + 3];
 #endif
 		}
-		n /= 3;
 		break;
+	}
+
 	case 2:
-		words = (int16_t *) buffer;
+	{
+		int16_t *words = (int16_t *) buffer;
+
 		for (i = 0; i < n; ++i) {
-			cursample = samples[i] >> 16;
-			words[i] = (int16_t) cursample;
+			words[i] = samples[i] >> 16;
 		}
 		break;
+	}
+
 	case 1:
-		sbytes = (int8_t *) buffer;
+	{
+		int8_t *sbytes = (int8_t *) buffer;
+		
 		for (i = 0; i < n; ++i) {
-			cursample = samples[i] >> 24;
-			sbytes[i] = (int8_t) cursample;
+			sbytes[i] = samples[i] >> 24;
 		}
 		break;
+	}
 	}
 
 	return DoWriteSamples(w, buffer, len, 0);
