@@ -83,10 +83,7 @@ ieee754_write_extended(double d, uint8_t *out)
 #include <string.h>
 
 
-/*
- * Infinite & NAN values
- * for non-IEEE systems
- */
+/* XXX infinite and NaN values */
 #ifndef HUGE_VAL
 #ifdef HUGE
 #define INFINITE_VALUE	HUGE
@@ -136,13 +133,8 @@ ieee754_write_extended(double in, uint8_t* out)
 
 	fraction = frexp(in, &exp);
 
-	if (exp == 0 || exp > 16384) {
-		if (exp > 16384) /* infinite value */
-			high = low = 0;
-		else {
-			high = 0x80000000;
-			low = 0;
-		}
+	if (exp > 16384) {
+		high = low = 0; /* infinity */
 		exp = 32767;
 		goto done;
 	}
