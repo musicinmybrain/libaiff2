@@ -273,10 +273,8 @@ FindDecoder (IFFType fmt)
 	struct decoder **dd, *d;
 	
 	for (dd = decoders; (d = *dd) != NULL; ++dd)
-	  {
 		if (d->fmt == fmt)
 			return d;
-	  }
 	
 	return NULL;
 }
