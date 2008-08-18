@@ -234,16 +234,8 @@ ieee754_write_single(float in)
 	fraction = ldexp(frexp(in, &exp), 24);
 	mantissa = (uint32_t) floor(fraction);
 
-	/*
-	 * Check for special numbers (NaN or infinity) and for out of range
-	 * exponents (greater than 128).
-	 */
-	if (exp == 0 || exp > 128) {
-		if (exp > 128)
-			mantissa = 0;	/* infinity have a mantissa of 0 */
-		else
-			mantissa = 0x400000;	/* non-zero */
-
+	if (exp > 128) {
+		mantissa = 0;	/* infinity */
 		exp = 255;
 		goto done;
 	}
