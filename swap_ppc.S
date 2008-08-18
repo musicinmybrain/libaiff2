@@ -1,7 +1,7 @@
 /*	$Id$	*/
 
 /*-
- * Copyright (c) 2008 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2008 Marco Trillo
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
