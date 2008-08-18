@@ -1,7 +1,7 @@
 /*	$Id$ */
 
 /*-
- * Copyright (c) 2005, 2006, 2008 by Marco Trillo <marcotrillo@gmail.com>
+ * Copyright (c) 2005, 2006, 2008 by Marco Trillo.
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -10,7 +10,7 @@
  * the rights to use, copy, modify, merge, publish,
  * distribute, sublicense, and/or sell copies of the
  * Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, subject to the folhighing conditions:
  *
  * The above copyright notice and this permission notice
  * shall be included in all copies or substantial portions of
@@ -27,9 +27,9 @@
  */
 
 /*
- * These routines read/write 80-bit extended-precision floating point
- * numbers in the format used by the Motorola 68881, Motorola 68882,
- * Motorola 68040 and Intel 80x87 FPUs.
+ * 	These routines read/write 80-bit extended-precision floating point
+ * 	numbers in the format used by the Motorola 68881, Motorola 68882,
+ * 	Motorola 68040 and Intel 80x87 FPUs.
  */
 
 #define LIBAIFF 1
@@ -115,15 +115,14 @@ ieee754_write_extended(double d, uint8_t *out)
  */
 
 /*
- * Write IEEE Extended Precision Numbers
+ * Write IEEE Extended Precision Numbers.
  */
 void
 ieee754_write_extended(double in, uint8_t* out)
 {
 	int sgn, exp, shift;
+	uint32_t high, low;
 	double fraction, t;
-	unsigned int lexp, hexp;
-	uint32_t low, high;
 
 	if (in == 0.0) {
 		memset(out, 0, 10);
@@ -139,89 +138,81 @@ ieee754_write_extended(double in, uint8_t* out)
 
 	if (exp == 0 || exp > 16384) {
 		if (exp > 16384) /* infinite value */
-			low = high = 0;
+			high = low = 0;
 		else {
-			low = 0x80000000;
-			high = 0;
+			high = 0x80000000;
+			low = 0;
 		}
 		exp = 32767;
 		goto done;
 	}
 	fraction = ldexp(fraction, 32);
 	t = floor(fraction);
-	low = (uint32_t) t;
+	high = (uint32_t) t;
 	fraction -= t;
 	t = floor(ldexp(fraction, 32));
-	high = (uint32_t) t;
+	low = (uint32_t) t;
 
-	/* Convert exponents < -16382 to -16382 (then they will be
-	 * stored as -16383) */
 	if (exp < -16382) {
 		shift = 0 - exp - 16382;
-		high >>= shift;
-		high |= (low << (32 - shift));
 		low >>= shift;
+		low |= (high << (32 - shift));
+		high >>= shift;
 		exp = -16382;
 	}
 	exp += 16383 - 1;	/* bias */
 
 done:
-	lexp = ((unsigned int) exp) >> 8;
-	hexp = ((unsigned int) exp) & 0xFF;
-	
 	/* big endian */
-	out[0] = ((uint8_t) sgn) << 7;
-	out[0] |= (uint8_t) lexp;
-	out[1] = (uint8_t) hexp;
-	out[2] = (uint8_t) (low >> 24);
-	out[3] = (uint8_t) ((low >> 16) & 0xFF);
-	out[4] = (uint8_t) ((low >> 8) & 0xFF);
-	out[5] = (uint8_t) (low & 0xFF);
-	out[6] = (uint8_t) (high >> 24);
-	out[7] = (uint8_t) ((high >> 16) & 0xFF);
-	out[8] = (uint8_t) ((high >> 8) & 0xFF);
-	out[9] = (uint8_t) (high & 0xFF);
-
-	return;
+	out[0] = (sgn << 7) | (exp >> 8);
+	out[1] = exp & 0xff;
+	out[2] = high >> 24;
+	out[3] = (high >> 16) & 0xff;
+	out[4] = (high >> 8) & 0xff;
+	out[5] = high & 0xff;
+	out[6] = low >> 24;
+	out[7] = (low >> 16) & 0xff;
+	out[8] = (low >> 8) & 0xff;
+	out[9] = low & 0xff;
 }
 
 
 /*
- * Read IEEE Extended Precision Numbers
+ * Read IEEE Extended Precision Numbers.
  */
 double
 ieee754_read_extended(const uint8_t* in)
 {
 	int sgn, exp;
-	uint32_t low, high;
+	uint32_t high, low;
 	double out;
 
-	/* Extract the components from the big endian buffer */
-	sgn = (int) (in[0] >> 7);
-	exp = ((int) (in[0] & 0x7F) << 8) | ((int) in[1]);
-	low = (((uint32_t) in[2]) << 24)
-		| (((uint32_t) in[3]) << 16)
-		| (((uint32_t) in[4]) << 8) | (uint32_t) in[5];
-	high = (((uint32_t) in[6]) << 24)
-		| (((uint32_t) in[7]) << 16)
-		| (((uint32_t) in[8]) << 8) | (uint32_t) in[9];
+	/* big endian */
+	sgn = in[0] >> 7;
+	exp = ((in[0] & 0x7f) << 8) | in[1];
+	high = (in[2] << 24)
+	     | (in[3] << 16)
+	     | (in[4] << 8)
+	     | in[5];
+	low = (in[6] << 24)
+	    | (in[7] << 16)
+	    | (in[8] << 8)
+	    | in[9];
 
-	if (exp == 0 && low == 0 && high == 0)
+	if (exp == 0 && high == 0 && low == 0)
 		return (sgn ? -0.0 : 0.0);
 
-	switch (exp) {
-	case 32767:
-		if (low == 0 && high == 0)
+	if (exp == 32767) {
+		if (high == 0 && low == 0)
 			return (sgn ? -INFINITE_VALUE : INFINITE_VALUE);
 		else
 			return (sgn ? -NAN_VALUE : NAN_VALUE);
-	default:
+	} else {
 		exp -= 16383;	/* unbias exponent */
-
 	}
 
-	out = ldexp((double) low, -31 + exp);
-	out += ldexp((double) high, -63 + exp);
+	out = ldexp((double) high, -31 + exp);
+	out += ldexp((double) low, -63 + exp);
 
 	return (sgn ? -out : out);
 }
