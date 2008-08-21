@@ -746,11 +746,29 @@ DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 	if (fwrite(buffer, 1, len, w->fd) < len) {
 		return -1;
 	}
-	sampleBytes = (uint32_t) len;
+	sampleBytes = n * w->segmentSize;
 	w->sampleBytes += sampleBytes;
 	w->len += sampleBytes;
 
 	return 1;
+}
+
+int
+AIFF_WriteSamplesRaw(AIFF_Ref w, void *samples, size_t len)
+{
+	if (!w || 0 == (w->flags & F_WRONLY))
+		return (-1);
+	if (w->stat != 2)
+		return (0);
+
+	if (fwrite(samples, 1, len, w->fd) < len) {
+		return (-1);
+	}
+
+	w->sampleBytes += len;
+	w->len += len;
+
+	return (1);
 }
 
 int

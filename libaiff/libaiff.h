@@ -178,6 +178,7 @@ int AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers) ;
 int AIFF_SetAudioFormat(AIFF_Ref,int,double,int ) ;
 int AIFF_StartWritingSamples(AIFF_Ref) ;
 int AIFF_WriteSamples(AIFF_Ref,void*,size_t) ;
+int AIFF_WriteSamplesRaw(AIFF_Ref,void*,size_t) ;
 int AIFF_WriteSamples32Bit(AIFF_Ref,int32_t*,int) ;
 int AIFF_EndWritingSamples(AIFF_Ref) ;
 int AIFF_StartWritingMarkers(AIFF_Ref) ;
