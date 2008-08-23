@@ -69,7 +69,7 @@ PASCALInRead (FILE * fd, int * length)
 	if ((str = malloc(c + 1)) == NULL) {
 		goto ret;
 	}
-	if ((fr = (int) fread(str, 1, l, fd)) != l) {
+	if ((fr = fread(str, 1, l, fd)) != l) {
 		free(str);
 		str = NULL;
 		r += fr;
@@ -89,7 +89,7 @@ ret:
  * anything
  */
 int
-PASCALOutGetLength (char * str)
+PASCALOutGetLength (const char * str)
 {
 	int l = strlen(str);
 	l = MIN(l, 0xFF);
@@ -101,7 +101,7 @@ PASCALOutGetLength (char * str)
  * and return the num. of bytes written
  */
 int
-PASCALOutWrite (FILE * fd, char * str)
+PASCALOutWrite (FILE * fd, const char * str)
 {
 	int l = strlen(str), w;
 	
@@ -115,7 +115,7 @@ PASCALOutWrite (FILE * fd, char * str)
 	 * The C-string NUL terminator will serve
 	 * as a pad byte if necessary
 	 */
-	w += (int) fwrite(str, 1, l, fd);
+	w += fwrite(str, 1, l, fd);
 	
 	return (w);
 }

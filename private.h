@@ -156,7 +156,7 @@ int
 get_aifx_instrument(AIFF_Ref r, Instrument * inpi);
 int 
 do_aifx_prepare(AIFF_Ref r);
-char           *
+const char           *
 get_aifx_enc_name(IFFType);
 
 /* lpcm.c */
@@ -180,5 +180,5 @@ double          ieee754_read_extended(const uint8_t *);
 /* pascal.c */
 int             PASCALInGetLength(FILE *);
 char           *PASCALInRead(FILE *, int *);
-int             PASCALOutGetLength(char *);
-int             PASCALOutWrite(FILE *, char *);
+int             PASCALOutGetLength(const char *);
+int             PASCALOutWrite(FILE *, const char *);

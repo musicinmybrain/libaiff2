@@ -42,7 +42,7 @@ lpcm_swap16:
 1:
 	sub	%r7, %r6, %r8
 	cmpwi	%r7, 4
-	blt	2f
+	blt-	2f
 	lwbrx	%r9, %r8, %r4
 	rlwinm	%r10, %r9, 16, 0, 31
 	stwx	%r10, %r8, %r3
@@ -50,10 +50,9 @@ lpcm_swap16:
 	b	1b
 2:
 	cmpwi	%r7, 0
-	beq	2f
+	beqlr
 	lhbrx	%r9, %r8, %r4
 	sthx	%r9, %r8, %r3
-2:
 	blr
 
 
@@ -69,13 +68,11 @@ lpcm_swap32:
 	li	%r8, 0
 1:
 	cmpw	%r6, %r8
-	beq	2f
+	beqlr-
 	lwbrx	%r9, %r8, %r4
 	stwx	%r9, %r8, %r3
 	addi	%r8, %r8, 4
 	b	1b
-2:
-	blr
 
 
 

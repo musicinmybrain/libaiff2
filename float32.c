@@ -142,7 +142,7 @@ float32_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	size_t bytes_in;
 	size_t bytesToRead;
 
-	n = (int) len >> 2;
+	n = len >> 2;
 	len &= ~3;
 	
 	slen = (size_t) (r->soundLen) - (size_t) (r->pos);

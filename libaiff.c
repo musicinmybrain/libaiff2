@@ -167,6 +167,8 @@ AIFF_GetAttribute(AIFF_Ref r, IFFType attrib)
 	default:
 		return NULL;
 	}
+
+	/* NOTREACHED */
 	return NULL;
 }
 
@@ -183,6 +185,8 @@ AIFF_ReadMarker(AIFF_Ref r, int *id, uint64_t * pos, char **name)
 	default:
 		return 0;
 	}
+
+	/* NOTREACHED */
 	return 0;
 }
 
@@ -562,7 +566,7 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	IFFChunk chk;
 	IFFType enc;
 	uint32_t ckLen = 18;
-	char* encName = NULL;
+	const char* encName = NULL;
 	ASSERT(sizeof(IFFChunk) == 8);
 
 	if (!w || !(w->flags & F_WRONLY))
@@ -593,19 +597,16 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 		return -1;
 	}
 	/* Fill in the chunk */
-	c.numChannels = (uint16_t) channels;
+	c.numChannels = channels;
 	c.numChannels = ARRANGE_BE16(c.numChannels);
 	c.numSampleFrames = 0;
-	c.sampleSize = (uint16_t) bitsPerSample;
+	c.sampleSize = bitsPerSample;
 	c.sampleSize = ARRANGE_BE16(c.sampleSize);
 	ieee754_write_extended(sRate, buffer);
 
 	/*
-	 * Write out the data.
-	 * Write each independent field separately,
-	 * since sizeof(CommonChunk) % 2 != 0, 
-	 * so aligning may occur and insert some
-	 * zeros between our fields!
+	 * Write out the data. Write each field independently to avoid
+	 * alignment problems within the structure.
 	 */
 	if (fwrite(&(c.numChannels), 1, 2, w->fd) < 2
 	    || fwrite(&(c.numSampleFrames), 1, 4, w->fd) < 4
@@ -630,11 +631,11 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	 * (to update the 'numSampleFrames'),
 	 * so store the current writing position
 	 *
-	 * ( note that w->len is total file length - 8 ,
-	 * so we need to add 8 to get a valid offset ).
+	 * (note that w->len is total file length - 8 ,
+	 * so we need to add 8 to get a valid offset).
 	 */
 	w->len += 8;
-	w->commonOffSet = w->len;
+	w->commonOffset = w->len;
 	w->len += ckLen;
 	w->segmentSize = (bitsPerSample + 7) >> 3;
 	w->nChannels = channels;
@@ -671,7 +672,7 @@ AIFF_StartWritingSamples(AIFF_Ref w)
 		return -1;
 	}
 	w->len += 8;
-	w->soundOffSet = w->len;
+	w->soundOffset = w->len;
 	w->len += 8;
 	w->sampleBytes = 0;
 	w->stat = 2;
@@ -861,12 +862,9 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 		w->sampleBytes++;
 		w->len++;
 	}
-	/*
-	 * XXX: AIFF files are 32-bit
-	 */
-	curpos = (uint32_t) (w->len) + 8;
-
-	of = w->soundOffSet;
+	
+	curpos = w->len + 8;
+	of = w->soundOffset;
 	
 	chk.id = ARRANGE_BE32(AIFF_SSND);
 	chk.len = w->sampleBytes + 8;
@@ -883,7 +881,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	numSampleFrames = ARRANGE_BE32(numSampleFrames);
 
 	/* Write out */
-	of = w->commonOffSet + 10;
+	of = w->commonOffset + 10;
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
@@ -917,7 +915,7 @@ AIFF_StartWritingMarkers(AIFF_Ref w)
 	if (fwrite(&chk, 1, 8, w->fd) < 8)
 		return -1;
 	w->len += 8;
-	w->markerOffSet = w->len;
+	w->markerOffset = w->len;
 	if (fwrite(&nMarkers, 1, 2, w->fd) < 2)
 		return -1;
 	w->len += 2;
@@ -972,7 +970,7 @@ int
 AIFF_EndWritingMarkers(AIFF_Ref w)
 {
 	uint32_t cklen, curpos;
-	long offSet;
+	long offset;
 	uint16_t nMarkers;
 
 	if (!w || !(w->flags & F_WRONLY))
@@ -981,10 +979,10 @@ AIFF_EndWritingMarkers(AIFF_Ref w)
 		return -1;
 
 	curpos = w->len + 8;
-	cklen = w->len - w->markerOffSet;
+	cklen = w->len - w->markerOffset;
 	cklen = ARRANGE_BE32(cklen);
 
-	offSet = w->markerOffSet;
+	offset = w->markerOffset;
 	
 	/*
 	 * Correct the chunk length
@@ -993,7 +991,7 @@ AIFF_EndWritingMarkers(AIFF_Ref w)
 	nMarkers = w->markerPos;
 	nMarkers = ARRANGE_BE16(nMarkers);
 
-	if (fseek(w->fd, offSet + 4, SEEK_SET) < 0) {
+	if (fseek(w->fd, offset + 4, SEEK_SET) < 0) {
 		return -1;
 	}
 	if (fwrite(&cklen, 1, 4, w->fd) < 4
@@ -1001,8 +999,8 @@ AIFF_EndWritingMarkers(AIFF_Ref w)
 		return -1;
 	}
 	/* Return back to current writing position */
-	offSet = (long) curpos;
-	if (fseek(w->fd, offSet, SEEK_SET) < 0) {
+	offset = curpos;
+	if (fseek(w->fd, offset, SEEK_SET) < 0) {
 		return -1;
 	}
 	w->stat = 3;
@@ -1050,7 +1048,7 @@ AIFFAssertionFailed (const char * fil, int lin)
 	
 	fprintf(stderr, "%s: assertion at %s:%d failed\n",
 			PACKAGE_STRING,
-			(char *) fil,
+			fil,
 			lin
 			);
 	fprintf(stderr, "%s: please report this bug at <%s>\n",

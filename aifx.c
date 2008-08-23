@@ -62,10 +62,10 @@ init_aifx(AIFF_Ref r)
 	p.sampleSize = ARRANGE_BE16(p.sampleSize);
 	sRate = ieee754_read_extended(buffer);
 
-	r->nSamples = (uint64_t) (p.numSampleFrames);
-	r->nChannels = (int) p.numChannels;
+	r->nSamples = p.numSampleFrames;
+	r->nChannels = p.numChannels;
 	r->samplingRate = sRate;
-	r->bitsPerSample = (int) p.sampleSize;
+	r->bitsPerSample = p.sampleSize;
 
 	bps = p.sampleSize;
 	wSegmentSize = (bps + 7) >> 3;
@@ -78,41 +78,40 @@ init_aifx(AIFF_Ref r)
 		case AUDIO_FORMAT_LPCM:	/* 'NONE' */
 		case AUDIO_FORMAT_lpcm:	/* 'lpcm' (not standard) */
 		case AUDIO_FORMAT_twos:	/* 'twos' */
-			aFmt = AUDIO_FORMAT_LPCM;
+			r->audioFormat = AUDIO_FORMAT_LPCM;
 			r->flags |= LPCM_BIG_ENDIAN;
 			break;
 			
 		case AUDIO_FORMAT_ULAW: /* 'ULAW' */
 		case AUDIO_FORMAT_ulaw: /* 'ulaw' */
-			aFmt = AUDIO_FORMAT_ULAW;
+			r->audioFormat = AUDIO_FORMAT_ULAW;
 			r->segmentSize = 2;
 			r->bitsPerSample = 14;
 			break;
 		
 		case AUDIO_FORMAT_ALAW: /* 'ALAW' */
 		case AUDIO_FORMAT_alaw: /* 'alaw' */
-			aFmt = AUDIO_FORMAT_ALAW;
+			r->audioFormat = AUDIO_FORMAT_ALAW;
 			r->segmentSize = 2;
 			r->bitsPerSample = 13;
 			break;
 			
 		case AUDIO_FORMAT_sowt:	/* 'sowt' */
-			aFmt = AUDIO_FORMAT_LPCM;
+			r->audioFormat = AUDIO_FORMAT_LPCM;
 			r->flags |= LPCM_LTE_ENDIAN;
 			break;
 
 		case AUDIO_FORMAT_FL32: /* 'FL32' */
 		case AUDIO_FORMAT_fl32: /* 'fl32' */
-			aFmt = AUDIO_FORMAT_FL32;
+			r->audioFormat = AUDIO_FORMAT_FL32;
 			r->segmentSize = 4;
 			r->bitsPerSample = 32;
 			r->flags |= LPCM_BIG_ENDIAN;
 			break;
 				
 		default:
-			aFmt = AUDIO_FORMAT_UNKNOWN;
+			r->audioFormat = AUDIO_FORMAT_UNKNOWN;
 		}
-		r->audioFormat = aFmt;
 
 		/*
 		 * Read the description string if 
@@ -149,7 +148,7 @@ read_aifx_marker(AIFF_Ref r, int *id, uint64_t * position, char **name)
 		if (fread(&nMarkers, 1, 2, r->fd) < 2)
 			return (-1);
 		nMarkers = ARRANGE_BE16(nMarkers);
-		r->nMarkers = (int) nMarkers;
+		r->nMarkers = nMarkers;
 		r->markerPos = 0;
 		r->stat = 2;
 	}
@@ -181,9 +180,9 @@ read_aifx_marker(AIFF_Ref r, int *id, uint64_t * position, char **name)
 		}
 	}
 
-	*id = (int) m.id;
-	*position = (uint64_t) (m.position);
-	++(r->markerPos);
+	*id = m.id;
+	*position = m.position;
+	r->markerPos++;
 
 	return (1);
 }
@@ -226,10 +225,10 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 	inpi->releaseLoop.playMode = ARRANGE_BE16(releaseLoop.playMode);
 
 	/* Read the MarkerId`s for the positions */
-	ids[0] = (int) (ARRANGE_BE16(sustainLoop.beginLoop));
-	ids[1] = (int) (ARRANGE_BE16(sustainLoop.endLoop));
-	ids[2] = (int) (ARRANGE_BE16(releaseLoop.beginLoop));
-	ids[3] = (int) (ARRANGE_BE16(releaseLoop.endLoop));
+	ids[0] = ARRANGE_BE16(sustainLoop.beginLoop);
+	ids[1] = ARRANGE_BE16(sustainLoop.endLoop);
+	ids[2] = ARRANGE_BE16(releaseLoop.beginLoop);
+	ids[3] = ARRANGE_BE16(releaseLoop.endLoop);
 
 	/* Read the positions */
 	memset(positions, 0, 16 /* 4*4 */ );	/* by default set them to 0 */
@@ -238,7 +237,7 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 		if (read_aifx_marker(r, &id, &p, &name) < 1) {
 			break;
 		}
-		pos = (uint32_t) p;
+		pos = p;
 		if (name)
 			free(name);
 		for (i = 0; i < 4; ++i) {
@@ -247,10 +246,10 @@ get_aifx_instrument(AIFF_Ref r, Instrument * inpi)
 		}
 	}
 
-	inpi->sustainLoop.beginLoop = (uint64_t) (positions[0]);
-	inpi->sustainLoop.endLoop = (uint64_t) (positions[1]);
-	inpi->releaseLoop.beginLoop = (uint64_t) (positions[2]);
-	inpi->releaseLoop.endLoop = (uint64_t) (positions[3]);
+	inpi->sustainLoop.beginLoop = positions[0];
+	inpi->sustainLoop.endLoop = positions[1];
+	inpi->releaseLoop.beginLoop = positions[2];
+	inpi->releaseLoop.endLoop = positions[3];
 
 	return (1);
 }
@@ -268,15 +267,15 @@ do_aifx_prepare(AIFF_Ref r)
 	if (clen < 8)
 		return (-1);
 	clen -= 8;
-	r->soundLen = (uint64_t) clen;
+	r->soundLen = clen;
 	r->pos = 0;
 	if (fread(&s, 1, 8, r->fd) < 8) {
 		return (-1);
 	}
 	s.offset = ARRANGE_BE32(s.offset);
 	if (s.offset)
-		r->soundLen -= (uint64_t) (s.offset);
-	of = (long) s.offset;
+		r->soundLen -= s.offset;
+	of = s.offset;
 
 	/*
 	 * FIXME: What is s.blockSize?
@@ -296,12 +295,12 @@ do_aifx_prepare(AIFF_Ref r)
 	return (1);
 }
 
-struct s_encName {
+struct s_enc_name {
 	IFFType enc;
 	const char *name;
 };
 #define kNumEncs	6
-static struct s_encName encNames[kNumEncs] = {
+static struct s_enc_name encNames[kNumEncs] = {
 	{AUDIO_FORMAT_LPCM, "Signed integer (big-endian) linear PCM"},
 	{AUDIO_FORMAT_twos, "Signed integer (big-endian) linear PCM"},
 	{AUDIO_FORMAT_sowt, "Signed integer (little-endian) linear PCM"},
@@ -311,15 +310,15 @@ static struct s_encName encNames[kNumEncs] = {
 	{AUDIO_FORMAT_ALAW, "Signed 8-bit A-Law floating point PCM"}
 };
 
-char *
-get_aifx_enc_name (IFFType enc)
+const char *
+get_aifx_enc_name(IFFType enc)
 {
 	int i;
-	struct s_encName* e = encNames;
+	struct s_enc_name* e = encNames;
 
 	for (i = 0; i < kNumEncs; ++i) {
 		if (e[i].enc == enc)
-			return (char *) (e[i].name);
+			return (e[i].name);
 	}
 
 	return (NULL);

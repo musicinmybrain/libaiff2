@@ -62,16 +62,16 @@ struct s_AIFF_Ref {
 	int bitsPerSample;
 	int nMarkers;
 	int nChannels;
+	int markerPos;
 	double samplingRate;
 	uint64_t nSamples;
-	int markerPos;
 	uint64_t len;
 	uint64_t soundLen;
 	uint64_t pos;
 	uint64_t sampleBytes;
-	uint64_t commonOffSet;
-	uint64_t soundOffSet;
-	uint64_t markerOffSet;
+	uint64_t commonOffset;
+	uint64_t soundOffset;
+	uint64_t markerOffset;
 	IFFType format;
 	IFFType audioFormat;
 	void* decoder;
@@ -85,7 +85,7 @@ struct s_AIFF_Ref {
 
 typedef struct s_AIFF_Ref* AIFF_Ref;
 #ifdef LIBAIFF
-static const size_t kAIFFRefSize = sizeof(struct s_AIFF_Ref);
+#define kAIFFRefSize		sizeof(struct s_AIFF_Ref)
 #endif /* LIBAIFF */
 
 
