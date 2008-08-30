@@ -928,7 +928,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
-	if (1 != fwrite(&numSampleFrames, sizeof(numSampleFrames), 1, w->fd)) 
+	if (1 != fwrite(&numSampleFrames, sizeof(numSampleFrames), 1, w->fd)) { 
 		return -1;
 	}
 	/* Return back to current position in the file. */
