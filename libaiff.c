@@ -536,7 +536,7 @@ err1:
 	else
 		hdr.fid = ARRANGE_BE32(AIFF_AIFF);
 
-	if (fwrite(&hdr, 1, 12, w->fd) < 12) {
+	if (fwrite(&hdr, 1, sizeof(hdr), w->fd) != sizeof(hdr)) {
 err2:
 		fclose(w->fd);
 		goto err1;
@@ -558,8 +558,8 @@ err2:
 		chk.len = ARRANGE_BE32(4);
 		vers = ARRANGE_BE32(AIFC_STD_DRAFT_082691);
 
-		if (fwrite(&chk, 1, 8, w->fd) < 8 || 
-		    fwrite(&vers, 1, 4, w->fd) < 4) {
+		if (fwrite(&chk, sizeof(chk), 1, w->fd) != 1 || 
+		    fwrite(&vers, sizeof(vers), 1, w->fd) != 1) {
 			goto err2;
 		}
 
@@ -671,7 +671,7 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	chk.id = ARRANGE_BE32(AIFF_COMM);
 	chk.len = ARRANGE_BE32(ckLen);
 
-	if (fwrite(&chk, 1, sizeof(chk), w->fd) != sizeof(chk)) {
+	if (fwrite(&chk, sizeof(chk), 1, w->fd) != 1) {
 		return -1;
 	}
 	/* Fill in the chunk */
@@ -686,9 +686,9 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	 * Write out the data. Write each field independently to avoid
 	 * alignment problems within the structure.
 	 */
-	if (fwrite(&c.numChannels, 2, 1, w->fd) != 2  
-	    || fwrite(&c.numSampleFrames, 4, 1, w->fd) != 4  
-	    || fwrite(&c.sampleSize, 2, 1, w->fd) != 2  
+	if (fwrite(&c.numChannels, 2, 1, w->fd) != 1  
+	    || fwrite(&c.numSampleFrames, 4, 1, w->fd) != 1  
+	    || fwrite(&c.sampleSize, 2, 1, w->fd) != 1  
 	    || fwrite(buffer, 1, 10, w->fd) != 10) {
 		return -1;
 	}
@@ -698,7 +698,7 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	 * (encstring is a PASCAL string)
 	 */
 	if (w->flags & F_AIFC) {
-		if (fwrite(&enc, sizeof(enc), 1, w->fd) != sizeof(enc))
+		if (fwrite(&enc, sizeof(enc), 1, w->fd) != 1)
 			return -1;
 		if (PASCALOutWrite(w->fd, encName) < 2)
 			return -1;
@@ -734,13 +734,13 @@ AIFF_StartWritingSamples(AIFF_Ref w)
 
 	chk.id = ARRANGE_BE32(AIFF_SSND);
 	chk.len = ARRANGE_BE32(sizeof(s));
-	if (fwrite(&chk, 1, sizeof(chk), w->fd) < sizeof(chk)) {
+	if (fwrite(&chk, sizeof(chk), 1, w->fd) != 1) {
 		return -1;
 	}
 	/* We don't use these values. */
 	s.offset = 0;
 	s.blockSize = 0;
-	if (fwrite(&s, 1, sizeof(s), w->fd) < sizeof(s)) {
+	if (fwrite(&s, 1, sizeof(s), w->fd) != sizeof(s)) {
 		return -1;
 	}
 
@@ -774,8 +774,8 @@ DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 	if (w->stat != 2)
 		return 0;
 
-	n = (int) len;
-	if (n % (w->segmentSize) != 0)
+	n = len;
+	if ((n % w->segmentSize) != 0)
 		return 0;
 	n /= w->segmentSize;
 
@@ -789,7 +789,7 @@ DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 
 	lpcm_swap_samples(w->segmentSize, w->flags, samples, buffer, n);
 
-	if (fwrite(buffer, 1, len, w->fd) < len) {
+	if (fwrite(buffer, w->segmentSize, n, w->fd) != n) {
 		return -1;
 	}
 	sampleBytes = n * w->segmentSize;
@@ -807,7 +807,7 @@ AIFF_WriteSamplesRaw(AIFF_Ref w, void *samples, size_t len)
 	if (w->stat != 2)
 		return (0);
 
-	if (fwrite(samples, 1, len, w->fd) < len) {
+	if (fwrite(samples, 1, len, w->fd) != len) {
 		return (-1);
 	}
 
@@ -916,7 +916,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	chk.len = ARRANGE_BE32(chk.len);
 
 	if (fseek(w->fd, of, SEEK_SET) < 0 || 
-	    fwrite(&chk, 1, sizeof(chk), w->fd) != sizeof(chk)) {
+	    fwrite(&chk, sizeof(chk), 1, w->fd) != 1) {
 		return -1;
 	}
 
@@ -928,8 +928,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
-	if (fwrite(&numSampleFrames, sizeof(numSampleFrames), 1, w->fd) 
-	    != sizeof(numSampleFrames)) {
+	if (1 != fwrite(&numSampleFrames, sizeof(numSampleFrames), 1, w->fd)) 
 		return -1;
 	}
 	/* Return back to current position in the file. */
@@ -957,11 +956,11 @@ AIFF_StartWritingMarkers(AIFF_Ref w)
 	chk.id = ARRANGE_BE32(AIFF_MARK);
 	chk.len = ARRANGE_BE16(2);
 
-	if (fwrite(&chk, 1, 8, w->fd) < 8)
+	if (fwrite(&chk, sizeof(chk), 1, w->fd) != 1)
 		return -1;
 	w->len += 8;
 	w->markerOffset = w->len;
-	if (fwrite(&nMarkers, 1, 2, w->fd) < 2)
+	if (fwrite(&nMarkers, sizeof(nMarkers), 1, w->fd) != 1)
 		return -1;
 	w->len += 2;
 
@@ -990,10 +989,10 @@ AIFF_WriteMarker(AIFF_Ref w, uint64_t position, char *name)
 	m.position = (uint32_t) position; /* XXX: AIFF is a 32-bit format */
 	m.position = ARRANGE_BE32(m.position);
 
-	if (fwrite(&(m.id), 1, 2, w->fd) < 2 || 
-	    fwrite(&(m.position), 1, 4, w->fd) < 4)
+	if (fwrite(&m.id, sizeof(m.id), 1, w->fd) != 1 || 
+	    fwrite(&m.position, sizeof(m.position), 1, w->fd) != 1)
 		return -1;
-	w->len += 6;
+	w->len += sizeof(m.id) + sizeof(m.position);
 
 	if (name) {
 		int l;
@@ -1002,7 +1001,7 @@ AIFF_WriteMarker(AIFF_Ref w, uint64_t position, char *name)
 			return -1;
 		w->len += l;
 	} else {
-		if (fwrite("\0\0", 1, 2, w->fd) != 2)
+		if (fwrite("\0", 1, 2, w->fd) != 2)
 			return -1;
 		w->len += 2;
 	}
@@ -1039,8 +1038,8 @@ AIFF_EndWritingMarkers(AIFF_Ref w)
 	if (fseek(w->fd, offset + 4, SEEK_SET) < 0) {
 		return -1;
 	}
-	if (fwrite(&cklen, 1, 4, w->fd) < 4
-	    || fwrite(&nMarkers, 1, 2, w->fd) < 2) {
+	if (fwrite(&cklen, sizeof(cklen), 1, w->fd) != 1 ||  
+	    fwrite(&nMarkers, sizeof(nMarkers), 1, w->fd) != 1) {
 		return -1;
 	}
 	/* Return back to current writing position */
@@ -1074,7 +1073,7 @@ AIFF_WriteClose(AIFF_Ref w)
 		free(w);
 		return -1;
 	}
-	if (fwrite(&hdr, 1, 12, w->fd) < 12) {
+	if (fwrite(&hdr, 1, sizeof(hdr), w->fd) != sizeof(hdr)) {
 		fclose(w->fd);
 		free(w);
 		return -1;
