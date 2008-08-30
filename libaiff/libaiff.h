@@ -77,10 +77,9 @@ struct s_AIFF_Ref {
 	void* decoder;
 	void* pdata;
 	void* buffer;
-	size_t buflen;
+	unsigned int buflen;
 	void* buffer2;
-	size_t buflen2;
-	int tics;
+	unsigned int buflen2;
 } ;
 
 typedef struct s_AIFF_Ref* AIFF_Ref;
@@ -170,7 +169,8 @@ int AIFF_GetInstrumentData(AIFF_Ref,Instrument*) ;
 size_t AIFF_ReadSamples(AIFF_Ref,void*,size_t) ;
 int AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int n) ;
 int AIFF_Seek(AIFF_Ref,uint64_t) ;
-int AIFF_ReadSamples32Bit(AIFF_Ref,int32_t*,int) ;
+int AIFF_ReadSamples16Bit(AIFF_Ref,int16_t*,unsigned int) ;
+int AIFF_ReadSamples32Bit(AIFF_Ref,int32_t*,unsigned int) ;
 int AIFF_ReadMarker(AIFF_Ref,int*,uint64_t*,char**) ;
 int AIFF_GetAudioFormat(AIFF_Ref,uint64_t*,int*,double*,int*,int*) ;
 int AIFF_SetAttribute(AIFF_Ref,IFFType,char*) ;

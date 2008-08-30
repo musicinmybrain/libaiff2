@@ -77,7 +77,7 @@ lpcm_swap_samples(int segmentSize, int flags, const void *from, void *to, int ns
 		if (flags & LPCM_NEED_SWAP) {
 			lpcm_swap16(to, from, nsamples);
 		} else {
-			memmove(to, from, nsamples * sizeof(int16_t));
+			memcpy(to, from, nsamples * sizeof(int16_t));
 		}
 		break;
 	case 3:
@@ -100,14 +100,14 @@ lpcm_swap_samples(int segmentSize, int flags, const void *from, void *to, int ns
 				ubytes[i + 2] = x;
 			}
 		} else {
-			memmove(to, from, nsamples * 3);
+			memcpy(to, from, nsamples * 3);
 		}
 		break;
 	case 4:
 		if (flags & LPCM_NEED_SWAP) {
 			lpcm_swap32(to, from, nsamples);
 		} else {
-			memmove(to, from, nsamples * sizeof(int32_t));
+			memcpy(to, from, nsamples * sizeof(int32_t));
 		}
 		break;
 	}

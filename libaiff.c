@@ -1,7 +1,7 @@
 /*	$Id$	*/
 
 /*-
- * Copyright (c) 2005, 2006, 2007 Marco Trillo
+ * Copyright (c) 2005, 2006, 2007, 2008 Marco Trillo
  * 
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -46,7 +46,6 @@ static AIFF_Ref AIFF_ReadOpen (const char *, int);
 static AIFF_Ref AIFF_WriteOpen (const char *, int);
 static void AIFF_ReadClose (AIFF_Ref);
 static int AIFF_WriteClose (AIFF_Ref);
-static void* InitBuffer (AIFF_Ref, size_t);
 static void DestroyBuffer (AIFF_Ref);
 static int DoWriteSamples (AIFF_Ref, void *, size_t, int);
 static int Prepare (AIFF_Ref);
@@ -210,11 +209,20 @@ int
 AIFF_GetAudioFormat(AIFF_Ref r, uint64_t * nSamples, int *channels,
     double *samplingRate, int *bitsPerSample, int *segmentSize)
 {
-	if (!r || !(r->flags & F_RDONLY))
-		return (-1);
+	if (NULL == r 
+	    || 0 == (r->flags & (F_WRONLY | F_RDONLY))
+	    || (F_WRONLY == (r->flags & F_WRONLY) && r->stat < 1))
+		return -1;
 
-	if (nSamples)
-		*nSamples = r->nSamples;
+	if (nSamples) {
+		if ( F_RDONLY == (r->flags & F_RDONLY) || 
+		    (F_WRONLY == (r->flags & F_WRONLY) && r->stat >= 3))
+			*nSamples = r->nSamples;
+		else if (r->stat == 2)
+			*nSamples = r->sampleBytes / r->segmentSize;
+		else
+			*nSamples = 0;
+	}
 	if (channels)
 		*channels = r->nChannels;
 	if (samplingRate)
@@ -224,7 +232,7 @@ AIFF_GetAudioFormat(AIFF_Ref r, uint64_t * nSamples, int *channels,
 	if (segmentSize)
 		*segmentSize = r->segmentSize;
 
-	return (1);
+	return 1;
 }
 
 static int
@@ -330,90 +338,159 @@ AIFF_Seek(AIFF_Ref r, uint64_t framePos)
 	return dec->seek(r, framePos);
 }
 
-int 
-AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, int n)
+static void  
+Allocate(AIFF_Ref r, unsigned int size)
 {
-	int i, j;
-	unsigned int h, len;
-
-	if (!r || !(r->flags & F_RDONLY))
-		return -1;
-	if ((n % r->nChannels) != 0)
-		return 0;
-	if (n < 1 || r->segmentSize == 0)
-		return -1;
-	
-	len = n * r->segmentSize;
-
-	if (r->segmentSize == 4) {
-		h = AIFF_ReadSamples(r, samples, len);
-
-		return (h >> 2);
-	}
-
-	if (r->buflen < len) {
+	if (r->buflen < size) {
 		if (r->buffer)
 			free(r->buffer);
-		r->buffer = malloc(len);
-		if (!(r->buffer)) {
-			return -1;
-		}
-		r->buflen = len;
+		r->buffer = malloc(size);
+		if (NULL != r->buffer)
+			r->buflen = size;
+		else
+			r->buflen = 0;
+	}
+}
+
+int
+AIFF_ReadSamples16Bit(AIFF_Ref r, int16_t * samples, unsigned int n)
+{
+	unsigned int len, i;
+	int h;
+
+	if (NULL == r || 0 == (r->flags & F_RDONLY))
+		return -1;
+	if (0 == n || 0 != (n % r->nChannels))
+		return 0;
+	len = n * r->segmentSize;
+	
+	if (r->segmentSize == sizeof(int16_t)) {
+		return AIFF_ReadSamples(r, samples, len) / sizeof(int16_t);
 	}
 
+	Allocate(r, len);
+	if (NULL == r->buffer)
+		return -1;
+
 	h = AIFF_ReadSamples(r, r->buffer, len);
-	if (h < (unsigned)r->segmentSize)
-		return 0;
-	if ((h % r->segmentSize) != 0)
+	if (-1 == h || 0 != (h % r->segmentSize))
 		return -1;
 	n = h / r->segmentSize;
 
 	switch (r->segmentSize) {
-	case 3:
-	{
-		/* XXX -- this is gross. */
-		uint8_t *inbytes = (uint8_t *) r->buffer;
-		uint8_t *outbytes = (uint8_t *) samples;
-		j = 0;
+	case sizeof(int8_t): {
+		int8_t *p = (int8_t *) r->buffer;
 
-		for (i = 0; i < n; ++i) {
+		for (i = 0; i < n; ++i)
+			samples[i] = p[i] << 8;
+
+		break;
+	}
+
+	case sizeof(int32_t): {
+		int32_t *p = (int32_t *) r->buffer;
+
+		for (i = 0; i < n; ++i)
+			samples[i] = p[i] >> 16;
+
+		break;
+	}
+
+	case 3: { /* XXX -- this is gross. */
+		uint8_t *rp = (uint8_t *) r->buffer;
+		uint8_t *wp = (uint8_t *) samples;
+
+		i = n;
+		while (i > 0) {
 #ifdef WORDS_BIGENDIAN
-			outbytes[(i << 2) + 0] = inbytes[j + 0];
-			outbytes[(i << 2) + 1] = inbytes[j + 1];
-			outbytes[(i << 2) + 2] = inbytes[j + 2];
-			outbytes[(i << 2) + 3] = 0;
+			*wp++ = *rp++;
+			*wp++ = *rp++;
+			rp++;
 #else
-			outbytes[(i << 2) + 0] = 0;
-			outbytes[(i << 2) + 1] = inbytes[j + 0];
-			outbytes[(i << 2) + 2] = inbytes[j + 1];
-			outbytes[(i << 2) + 3] = inbytes[j + 2];
+			rp++;
+			*wp++ = *rp++;
+			*wp++ = *rp++;
 #endif
-			
-			j += 3;
+			--i;
 		}
 
 		break;
 	}
 
-	case 2:
-	{
-		int16_t *words = (int16_t *) r->buffer;
+	default:
+		return 0;
+	}
+
+	return n;
+}
+
+int 
+AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, unsigned int n)
+{
+	unsigned int len, i;
+	int h;
+
+	if (NULL == r || 0 == (r->flags & F_RDONLY))
+		return -1;
+	if (0 == n || 0 != (n % r->nChannels))
+		return 0;
+	len = n * r->segmentSize;
+
+	if (r->segmentSize == sizeof(int32_t)) {
+		return AIFF_ReadSamples(r, samples, len) / sizeof(int32_t);
+	}
+
+	Allocate(r, len);
+	if (NULL == r->buffer)
+		return -1;
+
+	h = AIFF_ReadSamples(r, r->buffer, len);
+	if (-1 == h || 0 != (h % r->segmentSize))
+		return -1;
+	n = h / r->segmentSize;
+
+	switch (r->segmentSize) {
+	case 3: { /* XXX -- this is gross. */
+		uint8_t *rp = (uint8_t *) r->buffer;
+		uint8_t *wp = (uint8_t *) samples;
+
+		i = n;
+		while (i > 0) {
+#ifdef WORDS_BIGENDIAN
+			*wp++ = *rp++;
+			*wp++ = *rp++;
+			*wp++ = *rp++;
+			*wp++ = 0;
+#else
+			*wp++ = 0;
+			*wp++ = *rp++;
+			*wp++ = *rp++;
+			*wp++ = *rp++;
+#endif
+			--i;
+		}
+
+		break;
+	}
+
+	case sizeof(int16_t): {
+		int16_t *p = (int16_t *) r->buffer;
 		
-		for (i = 0; i < n; ++i) {
-			samples[i] = (int32_t) (words[i]) << 16;
-		}
+		for (i = 0; i < n; ++i)
+			samples[i] = p[i] << 16;
 		break;
 	}
 
-	case 1:
-	{
-		int8_t *sbytes = (int8_t *) r->buffer;
+	case sizeof(int8_t): {
+		int8_t *p = (int8_t *) r->buffer;
 		
-		for (i = 0; i < n; ++i) {
-			samples[i] = (int32_t) (sbytes[i]) << 24;
-		}
+		for (i = 0; i < n; ++i)
+			samples[i] = p[i] << 24;
 		break;
 	}
+
+	default:
+		return 0;
 	}
 
 	return n;
@@ -430,7 +507,6 @@ AIFF_ReadClose(AIFF_Ref r)
 	Unprepare(r);
 	fclose(r->fd);
 	free(r);
-	return;
 }
 
 static AIFF_Ref 
@@ -469,7 +545,6 @@ err2:
 	w->segmentSize = 0;
 	w->buffer = NULL;
 	w->buflen = 0;
-	w->tics = 0;
 
 	/*
 	 * If writing AIFF-C, write the required FVER chunk
@@ -535,19 +610,20 @@ AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers)
 	
 	doneReadingMarkers = !cloneMarkers;
 	if (!doneReadingMarkers) {
-		int mMarkerId;
-		uint64_t mMarkerPos;
-		char *mMarkerName;
+		int mId;
+		uint64_t mPos;
+		char *mName;
 		
 		if ((ret = AIFF_StartWritingMarkers(w)) < 1)
 			return ret;
 		
 		do {
-			if (AIFF_ReadMarker(r, &mMarkerId, &mMarkerPos, &mMarkerName) < 1)
+			if (AIFF_ReadMarker(r, &mId, &mPos, &mName) < 1)
 				doneReadingMarkers = 1;
 			else {
-				ret = AIFF_WriteMarker(w, mMarkerPos, mMarkerName);
-				rval = (rval > 0 ? ret : rval); /* preserve previous errors */
+				ret = AIFF_WriteMarker(w, mPos, mName);
+				/* Preserve previous errors. */
+				rval = (rval > 0 ? ret : rval);
 			}
 		} while (!doneReadingMarkers);
 		
@@ -561,13 +637,14 @@ AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers)
 int 
 AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 {
-	uint8_t buffer[10];
 	CommonChunk c;
 	IFFChunk chk;
 	IFFType enc;
 	uint32_t ckLen = 18;
 	const char* encName = NULL;
-	ASSERT(sizeof(IFFChunk) == 8);
+	uint8_t buffer[10];
+	ASSERT(sizeof(chk) == 8);
+	ASSERT(sizeof(enc) == 4);
 
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
@@ -576,11 +653,10 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 
 	if (w->flags & F_AIFC) {
 		/*
-		 * On AIFF-C we need to write
-		 * the encoding plus a description string
-		 * in PASCAL-style format
+		 * On AIFF-C we need to write the encoding plus a 
+		 * description string in PASCAL string format.
 		 */
-		ckLen += 4;
+		ckLen += sizeof(enc);
 		if (w->flags & LPCM_LTE_ENDIAN)
 			enc = AUDIO_FORMAT_sowt;
 		else
@@ -588,12 +664,14 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 
 		encName = get_aifx_enc_name(enc);
 		ckLen += PASCALOutGetLength(encName);
+	} else {
+		enc = AUDIO_FORMAT_LPCM;
 	}
 	
 	chk.id = ARRANGE_BE32(AIFF_COMM);
 	chk.len = ARRANGE_BE32(ckLen);
 
-	if (fwrite(&chk, 1, 8, w->fd) < 8) {
+	if (fwrite(&chk, 1, sizeof(chk), w->fd) != sizeof(chk)) {
 		return -1;
 	}
 	/* Fill in the chunk */
@@ -608,10 +686,10 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	 * Write out the data. Write each field independently to avoid
 	 * alignment problems within the structure.
 	 */
-	if (fwrite(&(c.numChannels), 1, 2, w->fd) < 2
-	    || fwrite(&(c.numSampleFrames), 1, 4, w->fd) < 4
-	    || fwrite(&(c.sampleSize), 1, 2, w->fd) < 2
-	    || fwrite(buffer, 1, 10, w->fd) < 10) {
+	if (fwrite(&c.numChannels, 2, 1, w->fd) != 2  
+	    || fwrite(&c.numSampleFrames, 4, 1, w->fd) != 4  
+	    || fwrite(&c.sampleSize, 2, 1, w->fd) != 2  
+	    || fwrite(buffer, 1, 10, w->fd) != 10) {
 		return -1;
 	}
 
@@ -620,25 +698,22 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	 * (encstring is a PASCAL string)
 	 */
 	if (w->flags & F_AIFC) {
-		if (fwrite(&enc, 1, 4, w->fd) != 4)
+		if (fwrite(&enc, sizeof(enc), 1, w->fd) != sizeof(enc))
 			return -1;
 		if (PASCALOutWrite(w->fd, encName) < 2)
 			return -1;
 	}
 		    
 	/*
-	 * We need to return here later
-	 * (to update the 'numSampleFrames'),
-	 * so store the current writing position
-	 *
-	 * (note that w->len is total file length - 8 ,
-	 * so we need to add 8 to get a valid offset).
+	 * We need to return here later to update the 'numSampleFrames' member.
 	 */
-	w->len += 8;
-	w->commonOffset = w->len;
-	w->len += ckLen;
+	w->commonOffset = w->len + 8;
+	w->len += sizeof(chk) + ckLen;
+	w->bitsPerSample = bitsPerSample;
 	w->segmentSize = (bitsPerSample + 7) >> 3;
 	w->nChannels = channels;
+	w->samplingRate = sRate;
+	w->nSamples = 0;
 	w->stat = 1;
 
 	return 1;
@@ -649,7 +724,8 @@ AIFF_StartWritingSamples(AIFF_Ref w)
 {
 	IFFChunk chk;
 	SoundChunk s;
-	ASSERT(sizeof(SoundChunk) == 8);
+	ASSERT(sizeof(chk) == 8);
+	ASSERT(sizeof(s) == 8);
 
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
@@ -657,51 +733,23 @@ AIFF_StartWritingSamples(AIFF_Ref w)
 		return 0;
 
 	chk.id = ARRANGE_BE32(AIFF_SSND);
-	chk.len = ARRANGE_BE32(8);
-
-	if (fwrite(&chk, 1, 8, w->fd) < 8) {
+	chk.len = ARRANGE_BE32(sizeof(s));
+	if (fwrite(&chk, 1, sizeof(chk), w->fd) < sizeof(chk)) {
 		return -1;
 	}
-	/*
-	 * We don`t use these values
-	 */
+	/* We don't use these values. */
 	s.offset = 0;
 	s.blockSize = 0;
-
-	if (fwrite(&s, 1, 8, w->fd) < 8) {
+	if (fwrite(&s, 1, sizeof(s), w->fd) < sizeof(s)) {
 		return -1;
 	}
-	w->len += 8;
-	w->soundOffset = w->len;
-	w->len += 8;
+
+	w->soundOffset = w->len + 8;
+	w->len += sizeof(chk) + sizeof(s);
 	w->sampleBytes = 0;
 	w->stat = 2;
 
 	return 1;
-}
-
-static void *
-InitBuffer(AIFF_Ref w, size_t len)
-{
-	if (w->buflen < len) {
-modsize:
-		w->tics = 0;
-
-		if (w->buffer)
-			free(w->buffer);
-		w->buffer = malloc(len);
-
-		if (!(w->buffer)) {
-			w->buflen = 0;
-			return NULL;
-		}
-		w->buflen = len;
-
-	} else if (w->buflen > len) {
-		if (++(w->tics) == 3)
-			goto modsize;
-	}
-	return (w->buffer);
 }
 
 static void 
@@ -712,9 +760,6 @@ DestroyBuffer(AIFF_Ref w)
 
 	w->buffer = 0;
 	w->buflen = 0;
-	w->tics = 0;
-
-	return;
 }
 
 static int 
@@ -735,8 +780,8 @@ DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 	n /= w->segmentSize;
 
 	if (readOnlyBuf) {
-		buffer = InitBuffer(w, len);
-		if (buffer == NULL)
+		Allocate(w, len);
+		if ((buffer = w->buffer) == NULL)
 			return -1;
 	} else {
 		buffer = samples;
@@ -795,8 +840,8 @@ AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int n)
 	if (w->segmentSize == 4)
 		return DoWriteSamples(w, samples, len, 1) >> 2;
 		
-	buffer = InitBuffer(w, len);
-	if (!buffer)
+	Allocate(w, len);
+	if (NULL == (buffer = w->buffer))
 		return -1;
 
 	switch (w->segmentSize) {
@@ -867,13 +912,11 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	of = w->soundOffset;
 	
 	chk.id = ARRANGE_BE32(AIFF_SSND);
-	chk.len = w->sampleBytes + 8;
+	chk.len = w->sampleBytes + sizeof(SoundChunk);
 	chk.len = ARRANGE_BE32(chk.len);
 
-	if (fseek(w->fd, of, SEEK_SET) < 0) {
-		return -1;
-	}
-	if (fwrite(&chk, 1, 8, w->fd) < 8) {
+	if (fseek(w->fd, of, SEEK_SET) < 0 || 
+	    fwrite(&chk, 1, sizeof(chk), w->fd) != sizeof(chk)) {
 		return -1;
 	}
 
@@ -885,7 +928,8 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
-	if (fwrite(&numSampleFrames, 1, 4, w->fd) < 4) {
+	if (fwrite(&numSampleFrames, sizeof(numSampleFrames), 1, w->fd) 
+	    != sizeof(numSampleFrames)) {
 		return -1;
 	}
 	/* Return back to current position in the file. */
@@ -893,6 +937,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
+	w->nSamples = numSampleFrames * w->nChannels;
 	w->stat = 3;
 
 	return 1;
@@ -1036,6 +1081,7 @@ AIFF_WriteClose(AIFF_Ref w)
 	}
 	/* Now fclose, free & return */
 	fclose(w->fd);
+	DestroyBuffer(w);
 	free(w);
 	return ret;
 }
