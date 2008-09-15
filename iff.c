@@ -182,6 +182,7 @@ clone_iff_attributes(AIFF_Ref w, AIFF_Ref r)
 	for (i = 0; i < kIFFNumAttributes; ++i) {
 		if ((p = get_iff_attribute(r, attrs[i])) != NULL) {
 			ret = set_iff_attribute(w, attrs[i], p);
+			free(p);
 			rval = (rval > 0 ? ret : rval); /* preserve previous errors */
 		}
 	}
