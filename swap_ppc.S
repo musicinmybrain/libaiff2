@@ -26,6 +26,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "c_label.h"
+#include "asm_ppc.h"
 
 	.text
 
@@ -34,25 +36,25 @@
  *	                 const int16_t *srcSamples,
  *	                 int nSamples);
  */
-	.globl	lpcm_swap16
+	.globl	_C_LABEL(lpcm_swap16)
 	.align	2
-lpcm_swap16:
-	rlwinm	%r6, %r5, 1, 0, 30
-	li	%r8, 0
+_C_LABEL(lpcm_swap16):
+	rlwinm	r6, r5, 1, 0, 30
+	li	r8, 0
 1:
-	sub	%r7, %r6, %r8
-	cmpwi	%r7, 4
+	sub	r7, r6, r8
+	cmpwi	r7, 4
 	blt-	2f
-	lwbrx	%r9, %r8, %r4
-	rlwinm	%r10, %r9, 16, 0, 31
-	stwx	%r10, %r8, %r3
-	addi	%r8, %r8, 4
+	lwbrx	r9, r8, r4
+	rlwinm	r10, r9, 16, 0, 31
+	stwx	r10, r8, r3
+	addi	r8, r8, 4
 	b	1b
 2:
-	cmpwi	%r7, 0
+	cmpwi	r7, 0
 	beqlr
-	lhbrx	%r9, %r8, %r4
-	sthx	%r9, %r8, %r3
+	lhbrx	r9, r8, r4
+	sthx	r9, r8, r3
 	blr
 
 
@@ -61,17 +63,17 @@ lpcm_swap16:
  *                       const int32_t *srcSamples,
  *                       int nSamples);
  */
-	.globl lpcm_swap32
+	.globl _C_LABEL(lpcm_swap32)
 	.align 2
-lpcm_swap32:
-	rlwinm	%r6, %r5, 2, 0, 29
-	li	%r8, 0
+_C_LABEL(lpcm_swap32):
+	rlwinm	r6, r5, 2, 0, 29
+	li	r8, 0
 1:
-	cmpw	%r6, %r8
+	cmpw	r6, r8
 	beqlr-
-	lwbrx	%r9, %r8, %r4
-	stwx	%r9, %r8, %r3
-	addi	%r8, %r8, 4
+	lwbrx	r9, r8, r4
+	stwx	r9, r8, r3
+	addi	r8, r8, 4
 	b	1b
 
 

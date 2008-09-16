@@ -1,3 +1,4 @@
+#	$Id$
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
@@ -5,6 +6,8 @@ AC_PREREQ(2.60)
 AC_INIT([libaiff], [4.99], [marcotrillo@gmail.com])
 AC_CONFIG_HEADERS([libaiff/config.h])
 AC_CONFIG_SRCDIR([./libaiff.c])
+
+AC_CANONICAL_HOST
 
 # Checks for programs.
 AC_PROG_CC
@@ -30,6 +33,20 @@ AC_TYPE_INT32_T
 AC_TYPE_UINT32_T
 AC_TYPE_INT64_T
 AC_TYPE_UINT64_T
+
+case $host in
+ powerpc*-*-*)	OPTIM_FLAGS="-DHAVE_OPTIMIZED_SWAP";
+ 		OPTIM_FILES="swap_ppc.o";
+		;;
+ i?86-*-*)	OPTIM_FLAGS="-DHAVE_INTEL_80x87";
+ 		OPTIM_FILES="extended_x87.o";
+		;;
+ *)		OPTIM_FLAGS="";
+		OPTIM_FILES="";
+		;;
+esac
+AC_SUBST([OPTIM_FLAGS])
+AC_SUBST([OPTIM_FILES])
 
 AC_CONFIG_FILES([
         Makefile
