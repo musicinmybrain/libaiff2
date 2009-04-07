@@ -38,6 +38,7 @@
 #include <sys/types.h>
 #endif
 
+#include <math.h>
 
 #if !defined(HAVE_OPTIMIZED_SWAP)
 void
@@ -177,7 +178,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 			  
 			  while (nSamples-- > 0)
 				{
-				  outSamples[nSamples] = (float) integers[nSamples] / 2147483648.0;
+				  outSamples[nSamples] = ldexp(integers[nSamples], -31);
 				}
 			  break;
 		  }
@@ -204,7 +205,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 				u.b[0] = f[0];				
 #endif /* WORDS_BIGENDIAN */
 
-				*t++ = (float) u.i / 8388608.0;
+				*t++ = ldexp(u.i, -23);
 				f += 3;
 				}
 			  break;
@@ -215,7 +216,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 			  
 			  while (nSamples-- > 0)
 				{
-				  outSamples[nSamples] = (float) integers[nSamples] / 32768.0;
+				  outSamples[nSamples] = ldexp(integers[nSamples], -15);
 				}
 			  break;
 		  }
@@ -225,7 +226,7 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 			  
 			  while (nSamples-- > 0)
 				{
-				  outSamples[nSamples] = (float) integers[nSamples] / 128.0;
+				  outSamples[nSamples] = ldexp(integers[nSamples], -7);
 				}
 			  break;
 		  }
