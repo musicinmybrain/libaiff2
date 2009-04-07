@@ -183,37 +183,29 @@ lpcm_dequant(int segmentSize, void *buffer, float *outSamples, int nSamples)
 		  }
 		case 3:
 		  {
-			  uint8_t *b = (uint8_t *) buffer;
-			  int32_t integer;
-			  int sgn;
+			  uint8_t *f = (uint8_t *) buffer;
+			  float *t = outSamples;
+			  union {
+				int32_t i;
+				uint8_t b[4];
+			  } u;
 			  
 			  while (nSamples-- > 0)
 				{
 #ifdef WORDS_BIGENDIAN
-				  sgn = b[0] & 0x80;
-				  
-				  integer = ((int32_t) b[0] << 16) + 
-					  ((int32_t) b[1] << 8) + 
-					  (int32_t) b[2];
+				u.b[0] = (f[0] & 0x80 ? 0xff : 0);
+				u.b[1] = f[0];
+				u.b[2] = f[1];
+				u.b[3] = f[2];  
 #else
-				  sgn = b[2] & 0x80;
-				  
-				  integer = ((int32_t) b[2] << 16) + 
-					  ((int32_t) b[1] << 8) + 
-					  (int32_t) b[0];
+				u.b[3] = (f[2] & 0x80 ? 0xff : 0);
+				u.b[2] = f[2];
+				u.b[1] = f[1];
+				u.b[0] = f[0];				
 #endif /* WORDS_BIGENDIAN */
-				  
-				  if (sgn)
-					{
-					  /*
-					   * sign propagation
-					   * (host CPU must use two's complement ordering)
-					   */
-					  integer = (int32_t) (0xFF000000 | (uint32_t) integer);
-					}
-				  
-				  outSamples[nSamples] = (float) integer / 8388608.0;
-				  b += 3;
+
+				*t++ = (float) u.i / 8388608.0;
+				f += 3;
 				}
 			  break;
 		  }
