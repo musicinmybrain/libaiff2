@@ -239,25 +239,19 @@ lpcm_read_float32(AIFF_Ref r, float *buffer, int nSamples)
 	size_t len, slen, bytesToRead, bytes_in;
 	uint32_t clen;
 	int nSamplesRead;
+	void *buf;
 	
 	len = (size_t) nSamples * r->segmentSize;
 	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(len, slen);
 	if (bytesToRead == 0)
 		return 0;
+
+	buf = AIFFBufAllocate(r, kAIFFBufConv, bytesToRead);
+	if (NULL == buf)
+		return 0;
 	
-	if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
-		if (r->buffer2 != NULL)
-			free(r->buffer2);
-		r->buffer2 = malloc(bytesToRead);
-		if (r->buffer2 == NULL) {
-			r->buflen2 = 0;
-			return 0;
-		}
-		r->buflen2 = bytesToRead;
-	}
-	
-	bytes_in = fread(r->buffer2, 1, bytesToRead, r->fd);
+	bytes_in = fread(buf, 1, bytesToRead, r->fd);
 	if (bytes_in > 0)
 		clen = (uint32_t) bytes_in;
 	else
@@ -265,8 +259,8 @@ lpcm_read_float32(AIFF_Ref r, float *buffer, int nSamples)
 	r->pos += clen;
 	nSamplesRead = (int) clen / (r->segmentSize);
 	
-	lpcm_swap_samples(r->segmentSize, r->flags, r->buffer2, r->buffer2, nSamplesRead);
-	lpcm_dequant(r->segmentSize, r->buffer2, buffer, nSamplesRead);
+	lpcm_swap_samples(r->segmentSize, r->flags, buf, buf, nSamplesRead);
+	lpcm_dequant(r->segmentSize, buf, buffer, nSamplesRead);
 	
 	return nSamplesRead;
 }

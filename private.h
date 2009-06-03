@@ -1,5 +1,42 @@
 /* $Id$ */
 
+typedef struct s_AIFF_Buf {
+	void		*ptr;
+	unsigned int 	 len;
+} AIFF_Buf;
+
+enum {
+	kAIFFBufConv,
+	kAIFFBufExt,
+	kAIFFNBufs
+};
+
+struct s_AIFF_Rec {
+	FILE* fd;
+	int flags;
+	int stat; /* status */
+	int segmentSize;
+	int bitsPerSample;
+	int nMarkers;
+	int nChannels;
+	int markerPos;
+	double samplingRate;
+	uint64_t nSamples;
+	uint64_t len;
+	uint64_t soundLen;
+	uint64_t pos;
+	uint64_t sampleBytes;
+	uint64_t commonOffset;
+	uint64_t soundOffset;
+	uint64_t markerOffset;
+	IFFType format;
+	IFFType audioFormat;
+	void* decoder;
+	void* pdata;
+	AIFF_Buf buf[kAIFFNBufs];
+} ;
+#define kAIFFRecSize	sizeof(struct s_AIFF_Rec)
+
 #if !defined(HAVE_MEMSET) && defined(HAVE_BZERO)
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -137,6 +174,7 @@ struct decoder {
 	void            (*destroy) (AIFF_Ref);
 };
 
+
 /* iff.c */
 int 
 find_iff_chunk(IFFType, AIFF_Ref, uint32_t *);
@@ -182,3 +220,8 @@ int             PASCALInGetLength(FILE *);
 char           *PASCALInRead(FILE *, int *);
 int             PASCALOutGetLength(const char *);
 int             PASCALOutWrite(FILE *, const char *);
+
+/* libaiff.c */
+void		 AIFFBufDelete(AIFF_Ref, int);
+void		*AIFFBufAllocate(AIFF_Ref, int, unsigned int);
+

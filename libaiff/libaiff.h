@@ -53,40 +53,9 @@
 typedef uint32_t IFFType ;
 typedef uint16_t MarkerId ;
 
-/* Struct for AIFF I/O functions */
-struct s_AIFF_Ref {
-	FILE* fd;
-	int flags;
-	int stat; /* status */
-	int segmentSize;
-	int bitsPerSample;
-	int nMarkers;
-	int nChannels;
-	int markerPos;
-	double samplingRate;
-	uint64_t nSamples;
-	uint64_t len;
-	uint64_t soundLen;
-	uint64_t pos;
-	uint64_t sampleBytes;
-	uint64_t commonOffset;
-	uint64_t soundOffset;
-	uint64_t markerOffset;
-	IFFType format;
-	IFFType audioFormat;
-	void* decoder;
-	void* pdata;
-	void* buffer;
-	unsigned int buflen;
-	void* buffer2;
-	unsigned int buflen2;
-} ;
+struct s_AIFF_Rec;
 
-typedef struct s_AIFF_Ref* AIFF_Ref;
-#ifdef LIBAIFF
-#define kAIFFRefSize		sizeof(struct s_AIFF_Ref)
-#endif /* LIBAIFF */
-
+typedef struct s_AIFF_Rec* AIFF_Ref;
 
 /* 
  * == Interchange File Format (IFF) attributes ==

@@ -154,10 +154,10 @@ g711_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	size_t          n, i, rem, bytesToRead, bytesRead;
 	uint8_t        *bytes;
 	int16_t        *samples, *table = r->pdata;
+	void           *buf;
 
-	/* length must be even (16-bit samples) */
-	if (len & 1)
-		--len;
+	/* length must be even */
+	len &= ~1;
 
 	n = len >> 1;
 	rem = (size_t) (r->soundLen) - (size_t) (r->pos);
@@ -165,25 +165,19 @@ g711_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	if (bytesToRead == 0)
 		return 0;
 
-	if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
-		if (r->buffer2 != NULL)
-			free(r->buffer2);
-		r->buffer2 = malloc(bytesToRead);
-		if (r->buffer2 == NULL) {
-			r->buflen2 = 0;
-			return 0;
-		}
-		r->buflen2 = bytesToRead;
-	}
-	bytesRead = fread(r->buffer2, 1, bytesToRead, r->fd);
+	buf = AIFFBufAllocate(r, kAIFFBufConv, bytesToRead);
+	if (NULL == buf)
+		return 0;
+	
+	bytesRead = fread(buf, 1, bytesToRead, r->fd);
 	if (bytesRead > 0) {
 		r->pos += bytesRead;
 	} else {
 		return 0;
 	}
 
-	bytes = (uint8_t *) (r->buffer2);
-	samples = (int16_t *) buffer;
+	bytes = buf;
+	samples = buffer;
 	for (i = 0; i < bytesRead; ++i) {
 		samples[i] = table[bytes[i]];
 	}
@@ -215,30 +209,25 @@ g711_read_float32(AIFF_Ref r, float *buffer, int nFrames)
 	size_t          n = (size_t) nFrames, i, rem, bytesToRead, bytesRead;
 	uint8_t        *bytes;
 	int16_t        *table = r->pdata;
+	void           *buf;
 
 	rem = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(n, rem);
 	if (bytesToRead == 0)
 		return 0;
 
-	if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
-		if (r->buffer2 != NULL)
-			free(r->buffer2);
-		r->buffer2 = malloc(bytesToRead);
-		if (r->buffer2 == NULL) {
-			r->buflen2 = 0;
-			return 0;
-		}
-		r->buflen2 = bytesToRead;
-	}
-	bytesRead = fread(r->buffer2, 1, bytesToRead, r->fd);
+	buf = AIFFBufAllocate(r, kAIFFBufConv, bytesToRead);
+	if (NULL == buf)
+		return 0;
+	
+	bytesRead = fread(buf, 1, bytesToRead, r->fd);
 	if (bytesRead > 0) {
 		r->pos += bytesRead;
 	} else {
 		return 0;
 	}
 
-	bytes = (uint8_t *) (r->buffer2);
+	bytes = buf;
 	for (i = 0; i < bytesRead; ++i) {
 		buffer[i] = (float) (table[bytes[i]]) / 32768.0;
 	}

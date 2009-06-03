@@ -46,7 +46,6 @@ static AIFF_Ref AIFF_ReadOpen (const char *, int);
 static AIFF_Ref AIFF_WriteOpen (const char *, int);
 static void AIFF_ReadClose (AIFF_Ref);
 static int AIFF_WriteClose (AIFF_Ref);
-static void DestroyBuffer (AIFF_Ref);
 static int DoWriteSamples (AIFF_Ref, void *, size_t, int);
 static int Prepare (AIFF_Ref);
 static void Unprepare (AIFF_Ref);
@@ -91,7 +90,7 @@ AIFF_ReadOpen(const char *file, int flags)
 	AIFF_Ref r;
 	IFFHeader hdr;
 
-	r = malloc(kAIFFRefSize);
+	r = malloc(kAIFFRecSize);
 	if (!r) {
 		return NULL;
 	}
@@ -146,8 +145,8 @@ AIFF_ReadOpen(const char *file, int flags)
 	}
 
 	r->stat = 0;
-	r->buffer = NULL;
-	r->buflen = 0;
+
+	memset(r->buf, 0, sizeof(r->buf));
 
 	return r;
 }
@@ -338,25 +337,12 @@ AIFF_Seek(AIFF_Ref r, uint64_t framePos)
 	return dec->seek(r, framePos);
 }
 
-static void  
-Allocate(AIFF_Ref r, unsigned int size)
-{
-	if (r->buflen < size) {
-		if (r->buffer)
-			free(r->buffer);
-		r->buffer = malloc(size);
-		if (NULL != r->buffer)
-			r->buflen = size;
-		else
-			r->buflen = 0;
-	}
-}
-
 int
 AIFF_ReadSamples16Bit(AIFF_Ref r, int16_t * samples, unsigned int n)
 {
-	unsigned int len, i;
-	int h;
+	unsigned int 	 len, i;
+	int 		 h;
+	void		*buf;
 
 	if (NULL == r || 0 == (r->flags & F_RDONLY))
 		return -1;
@@ -368,18 +354,18 @@ AIFF_ReadSamples16Bit(AIFF_Ref r, int16_t * samples, unsigned int n)
 		return AIFF_ReadSamples(r, samples, len) / sizeof(int16_t);
 	}
 
-	Allocate(r, len);
-	if (NULL == r->buffer)
+	buf = AIFFBufAllocate(r, kAIFFBufExt, len);
+	if (NULL == buf)
 		return -1;
 
-	h = AIFF_ReadSamples(r, r->buffer, len);
+	h = AIFF_ReadSamples(r, buf, len);
 	if (-1 == h || 0 != (h % r->segmentSize))
 		return -1;
 	n = h / r->segmentSize;
 
 	switch (r->segmentSize) {
 	case sizeof(int8_t): {
-		int8_t *p = (int8_t *) r->buffer;
+		int8_t *p = buf;
 
 		for (i = 0; i < n; ++i)
 			samples[i] = p[i] << 8;
@@ -388,7 +374,7 @@ AIFF_ReadSamples16Bit(AIFF_Ref r, int16_t * samples, unsigned int n)
 	}
 
 	case sizeof(int32_t): {
-		int32_t *p = (int32_t *) r->buffer;
+		int32_t *p = buf;
 
 		for (i = 0; i < n; ++i)
 			samples[i] = p[i] >> 16;
@@ -397,7 +383,7 @@ AIFF_ReadSamples16Bit(AIFF_Ref r, int16_t * samples, unsigned int n)
 	}
 
 	case 3: { /* XXX -- this is gross. */
-		uint8_t *rp = (uint8_t *) r->buffer;
+		uint8_t *rp = buf;
 		uint8_t *wp = (uint8_t *) samples;
 
 		i = n;
@@ -427,8 +413,9 @@ AIFF_ReadSamples16Bit(AIFF_Ref r, int16_t * samples, unsigned int n)
 int 
 AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, unsigned int n)
 {
-	unsigned int len, i;
-	int h;
+	unsigned int 	 len, i;
+	int 		 h;
+	void		*buf;	
 
 	if (NULL == r || 0 == (r->flags & F_RDONLY))
 		return -1;
@@ -440,18 +427,18 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, unsigned int n)
 		return AIFF_ReadSamples(r, samples, len) / sizeof(int32_t);
 	}
 
-	Allocate(r, len);
-	if (NULL == r->buffer)
+	buf = AIFFBufAllocate(r, kAIFFBufExt, len);
+	if (NULL == buf)
 		return -1;
 
-	h = AIFF_ReadSamples(r, r->buffer, len);
+	h = AIFF_ReadSamples(r, buf, len);
 	if (-1 == h || 0 != (h % r->segmentSize))
 		return -1;
 	n = h / r->segmentSize;
 
 	switch (r->segmentSize) {
 	case 3: { /* XXX -- this is gross. */
-		uint8_t *rp = (uint8_t *) r->buffer;
+		uint8_t *rp = (uint8_t *) buf;
 		uint8_t *wp = (uint8_t *) samples;
 
 		i = n;
@@ -474,7 +461,7 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, unsigned int n)
 	}
 
 	case sizeof(int16_t): {
-		int16_t *p = (int16_t *) r->buffer;
+		int16_t *p = (int16_t *) buf;
 		
 		for (i = 0; i < n; ++i)
 			samples[i] = p[i] << 16;
@@ -482,7 +469,7 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, unsigned int n)
 	}
 
 	case sizeof(int8_t): {
-		int8_t *p = (int8_t *) r->buffer;
+		int8_t *p = (int8_t *) buf;
 		
 		for (i = 0; i < n; ++i)
 			samples[i] = p[i] << 24;
@@ -500,10 +487,11 @@ AIFF_ReadSamples32Bit(AIFF_Ref r, int32_t * samples, unsigned int n)
 static void 
 AIFF_ReadClose(AIFF_Ref r)
 {
-	if (r->buffer)
-		free(r->buffer);
-	if (r->buffer2)
-		free(r->buffer2);
+	int 	i;
+	
+	for (i = 0; i < kAIFFNBufs; ++i)
+		AIFFBufDelete(r, i);
+
 	Unprepare(r);
 	fclose(r->fd);
 	free(r);
@@ -516,7 +504,7 @@ AIFF_WriteOpen(const char *file, int flags)
 	IFFHeader hdr;
 	ASSERT(sizeof(IFFHeader) == 12);
 	
-	w = malloc(kAIFFRefSize);
+	w = malloc(kAIFFRecSize);
 	if (!w) {
 err0:
 		return NULL;
@@ -543,8 +531,8 @@ err2:
 	}
 	w->stat = 0;
 	w->segmentSize = 0;
-	w->buffer = NULL;
-	w->buflen = 0;
+	
+	memset(w->buf, 0, sizeof(w->buf));
 
 	/*
 	 * If writing AIFF-C, write the required FVER chunk
@@ -752,22 +740,12 @@ AIFF_StartWritingSamples(AIFF_Ref w)
 	return 1;
 }
 
-static void 
-DestroyBuffer(AIFF_Ref w)
-{
-	if (w->buffer)
-		free(w->buffer);
-
-	w->buffer = 0;
-	w->buflen = 0;
-}
-
 static int 
 DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 {
-	int n;
+	int 	 n;
 	uint32_t sampleBytes;
-	void *buffer;
+	void 	*buffer;
 	
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
@@ -780,8 +758,7 @@ DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 	n /= w->segmentSize;
 
 	if (readOnlyBuf) {
-		Allocate(w, len);
-		if ((buffer = w->buffer) == NULL)
+		if ((buffer = AIFFBufAllocate(w, kAIFFBufExt, len)) == NULL)
 			return -1;
 	} else {
 		buffer = samples;
@@ -789,7 +766,7 @@ DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 
 	lpcm_swap_samples(w->segmentSize, w->flags, samples, buffer, n);
 
-	if (fwrite(buffer, w->segmentSize, n, w->fd) != n) {
+	if (fwrite(buffer, w->segmentSize, n, w->fd) != (size_t)n) {
 		return -1;
 	}
 	sampleBytes = n * w->segmentSize;
@@ -839,9 +816,8 @@ AIFF_WriteSamples32Bit(AIFF_Ref w, int32_t * samples, int n)
 
 	if (w->segmentSize == 4)
 		return DoWriteSamples(w, samples, len, 1) >> 2;
-		
-	Allocate(w, len);
-	if (NULL == (buffer = w->buffer))
+	
+	if (NULL == (buffer = AIFFBufAllocate(w, kAIFFBufExt, len)))
 		return -1;
 
 	switch (w->segmentSize) {
@@ -900,8 +876,8 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 		return -1;
 	if (w->stat != 2)
 		return 0;
-	
-	DestroyBuffer(w);
+
+	AIFFBufDelete(w, kAIFFBufExt);
 	if (w->sampleBytes & 1) {
 		fputc(0, w->fd);
 		w->sampleBytes++;
@@ -1054,7 +1030,7 @@ AIFF_EndWritingMarkers(AIFF_Ref w)
 static int 
 AIFF_WriteClose(AIFF_Ref w)
 {
-	int ret = 1;
+	int i, ret = 1;
 	IFFHeader hdr;
 
 	if (w->stat != 3)
@@ -1080,13 +1056,57 @@ AIFF_WriteClose(AIFF_Ref w)
 	}
 	/* Now fclose, free & return */
 	fclose(w->fd);
-	DestroyBuffer(w);
+
+	for (i = 0; i < kAIFFNBufs; ++i)
+		AIFFBufDelete(w, i);
+
 	free(w);
 	return ret;
 }
 
+/*
+ *	Buffer manipulation.
+ */
 
-/* assertion failed */
+void
+AIFFBufDelete (AIFF_Ref a, int nbuf)
+{
+	AIFF_Buf	*b;
+
+	ASSERT(0 <= nbuf && nbuf < kAIFFNBufs);
+
+	b = &a->buf[nbuf];
+	if (b->len > 0) {
+		ASSERT(NULL != b->ptr);
+		free(b->ptr);
+		b->len = 0;
+	}
+}
+
+void *
+AIFFBufAllocate (AIFF_Ref a, int nbuf, unsigned int len)
+{
+	AIFF_Buf	*b;
+
+	ASSERT(0 <= nbuf && nbuf < kAIFFNBufs);
+	
+	b = &a->buf[nbuf];
+	if (b->len < len) {
+		if (b->ptr)
+			free(b->ptr);
+		b->ptr = malloc(len);
+		if (NULL == b->ptr)
+			b->len = 0;
+		else
+			b->len = len;
+	}
+
+	return b->ptr;
+}
+
+/*
+ * 	Assertion failed.
+ */
 void
 AIFFAssertionFailed (const char * fil, int lin)
 {

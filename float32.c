@@ -141,6 +141,7 @@ float32_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	size_t slen;
 	size_t bytes_in;
 	size_t bytesToRead;
+	void *buf;
 
 	n = len >> 2;
 	len &= ~3;
@@ -148,20 +149,11 @@ float32_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
 	bytesToRead = MIN(len, slen);
 
-	if (bytesToRead == 0)
+	if (0 == bytesToRead || 
+	    NULL == (buf = AIFFBufAllocate(r, kAIFFBufConv, bytesToRead)))
 		return 0;
-	if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
-		if (r->buffer2 != NULL)
-			free(r->buffer2);
-		r->buffer2 = malloc(bytesToRead);
-		if (r->buffer2 == NULL) {
-			r->buflen2 = 0;
-			return 0;
-		}
-		r->buflen2 = bytesToRead;
-	}
 
-	bytes_in = fread(r->buffer2, 1, bytesToRead, r->fd);
+	bytes_in = fread(buf, 1, bytesToRead, r->fd);
 	if (bytes_in > 0)
 		clen = (uint32_t) bytes_in;
 	else
@@ -169,8 +161,8 @@ float32_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	r->pos += clen;
 	
 	if (r->flags & LPCM_NEED_SWAP)
-		float32_swap_samples(r->buffer2, n);
-	float32_decode(buffer, r->buffer2, n);
+		float32_swap_samples(buf, n);
+	float32_decode(buffer, buf, n);
 
 	return bytes_in;
 }
@@ -369,20 +361,14 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 			nSamplesRead = 0;
 		}
 	} else {
-		if (r->buffer2 == NULL || r->buflen2 < bytesToRead) {
-			if (r->buffer2 != NULL)
-				free(r->buffer2);
-			r->buffer2 = malloc(bytesToRead);
-			if (r->buffer2 == NULL) {
-				r->buflen2 = 0;
-				return 0;
-			}
-			r->buflen2 = bytesToRead;
-		}
+		void	*buf = AIFFBufAllocate(r, kAIFFBufConv, bytesToRead);
+
+		if (buf == NULL)
+			return 0;
 		
-		bytes_in = fread(r->buffer2, 1, bytesToRead, r->fd);
+		bytes_in = fread(buf, 1, bytesToRead, r->fd);
 		if (bytes_in > 0) {
-			uint32_t *dwords = (uint32_t *) (r->buffer2);
+			uint32_t *dwords = buf;
 			
 			nSamplesRead = (int) bytes_in >> 2;
 			if (r->flags & LPCM_NEED_SWAP)
