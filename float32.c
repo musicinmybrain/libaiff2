@@ -34,6 +34,9 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
+#ifdef HAVE_INTEL_80x87
+# define IEEE754_NATIVE	1
+#endif
 
 /*
  * IEEE-754 32-bit single-precision floating point
@@ -199,6 +202,8 @@ float32_seek(AIFF_Ref r, uint64_t pos)
 # define NAN_VALUE	HUGE_VAL
 #endif
 
+#ifndef IEEE754_NATIVE
+
 /*
  * Write IEEE Single Precision Numbers.
  */
@@ -254,14 +259,11 @@ done:
 	return ((sgn << 31) | ((exp & 0xff) << 23) | mantissa);
 }
 
-#define IEEE754_TEST_VALUE	-1.12877
+# define IEEE754_TEST_VALUE	-1.12877
 
 /*
  * ieee754_native(): check if host supports single-precision IEEE-754 natively.
  */
-#ifdef HAVE_INTEL_80x87
-# define ieee754_native()       (1)
-#else
 static int
 ieee754_native(void)
 {
@@ -279,7 +281,6 @@ ieee754_native(void)
 
 	return (u.w == t);
 }
-#endif
 
 /*
  * Read IEEE Single Precision Numbers.
@@ -324,6 +325,8 @@ ieee754_read_single(uint32_t in)
 	return (sgn ? -out : out);
 }
 
+#endif /* ! IEEE754_NATIVE */
+
 static int
 float32_read_float32(AIFF_Ref r, float *buffer, int n)
 {
@@ -339,6 +342,7 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 	if (bytesToRead == 0)
 		return 0;
 	
+#ifndef IEEE754_NATIVE
 	/*
 	 * Check if this host supports 32-bit IEEE floats
 	 * natively and take note about it to avoid doing
@@ -351,6 +355,7 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 	}
 	
 	if (r->flags & F_IEEE754_NATIVE) {
+#endif
 		bytes_in = fread((void *) buffer, 1, bytesToRead, r->fd);
 		
 		if (bytes_in > 0) {
@@ -360,6 +365,8 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 		} else {
 			nSamplesRead = 0;
 		}
+		
+#ifndef IEEE754_NATIVE
 	} else {
 		void	*buf = AIFFBufAllocate(r, kAIFFBufConv, bytesToRead);
 
@@ -380,6 +387,7 @@ float32_read_float32(AIFF_Ref r, float *buffer, int n)
 			nSamplesRead = 0;
 		}
 	}
+#endif
 	
 	if (bytes_in > 0)
 		clen = (uint32_t) bytes_in;
