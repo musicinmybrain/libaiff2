@@ -145,6 +145,7 @@ int AIFF_GetAudioFormat(AIFF_Ref,uint64_t*,int*,double*,int*,int*) ;
 int AIFF_SetAttribute(AIFF_Ref,IFFType,char*) ;
 int AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers) ;
 int AIFF_SetAudioFormat(AIFF_Ref,int,double,int ) ;
+int AIFF_SetAudioEncoding(AIFF_Ref,IFFType);
 int AIFF_StartWritingSamples(AIFF_Ref) ;
 int AIFF_WriteSamples(AIFF_Ref,void*,size_t) ;
 int AIFF_WriteSamplesRaw(AIFF_Ref,void*,size_t) ;

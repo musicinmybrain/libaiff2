@@ -1,5 +1,19 @@
 /* $Id$ */
 
+/* XXX */
+#define OFF_T off_t
+#define FSEEKO fseeko
+
+struct codec {
+	IFFType         fmt;
+	int             (*construct) (AIFF_Ref);
+        size_t		(*read_lpcm) (AIFF_Ref, void *, size_t);
+	int             (*read_float32) (AIFF_Ref, float *, int);
+        int             (*write_lpcm) (AIFF_Ref, void *, size_t, int);
+	int             (*seek) (AIFF_Ref, uint64_t);
+	void            (*destroy) (AIFF_Ref);
+};
+
 typedef struct s_AIFF_Buf {
 	void		*ptr;
 	unsigned int 	 len;
@@ -31,7 +45,7 @@ struct s_AIFF_Rec {
 	uint64_t markerOffset;
 	IFFType format;
 	IFFType audioFormat;
-	void* decoder;
+	struct codec *codec;
 	void* pdata;
 	AIFF_Buf buf[kAIFFNBufs];
 } ;
@@ -165,15 +179,6 @@ struct s_AIFFComment {
 };
 typedef struct s_AIFFComment CommentChunk;
 
-struct decoder {
-	IFFType         fmt;
-	int             (*construct) (AIFF_Ref);
-        size_t		(*read_lpcm) (AIFF_Ref, void *, size_t);
-	int             (*read_float32) (AIFF_Ref, float *, int);
-	int             (*seek) (AIFF_Ref, uint64_t);
-	void            (*destroy) (AIFF_Ref);
-};
-
 
 /* iff.c */
 int 
@@ -202,14 +207,14 @@ void            lpcm_swap16(int16_t *, const int16_t *, int);
 void            lpcm_swap32(int32_t *, const int32_t *, int);
 void            lpcm_swap_samples(int, int, const void *, void *, int);
 void            lpcm_dequant(int segmentSize, void *buffer, float *outFrames, int nFrames);
-extern struct decoder lpcm;
+extern struct codec lpcm;
 
 /* g711.c */
-extern struct decoder ulaw;
-extern struct decoder alaw;
+extern struct codec ulaw;
+extern struct codec alaw;
 
 /* float32.c */
-extern struct decoder float32;
+extern struct codec float32;
 
 /* extended.c */
 void            ieee754_write_extended(double, uint8_t *);

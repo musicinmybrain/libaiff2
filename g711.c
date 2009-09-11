@@ -3,7 +3,7 @@
 /* 	Id: alaw.c,v 1.6 2007/01/07 14:47:32 toad32767 Exp     */
 
 /*-
- * Copyright (c) 2006, 2007 Marco Trillo
+ * Copyright (c) 2006, 2007, 2009 Marco Trillo.
  *
  * Permission is hereby granted, free of charge, to any
  * person obtaining a copy of this software and associated
@@ -31,87 +31,101 @@
 #define LIBAIFF 1
 #include <stdlib.h>
 #include <libaiff/libaiff.h>
+#include <math.h>
 #include "private.h"
 
-/*
- * G.711 mu-Law (u-Law)
- *
- * G.711 mu-Law is a 8-bit floating point representation
- * of 14-bit PCM samples, with a 4-bit mantissa and a 3-bit
- * exponent.
- *
- * This gives 5-bit (4 + hidden bit) mantissa precision for all samples,
- * so low samples (with zeros in the most-significant bits) get
- * more precision with this encoding than with normal 8-bit LPCM.
- *
- * For more information on G.711 u-Law:
- *   http://shannon.cm.nctu.edu.tw/comtheory/chap3.pdf
+static  int8_t expt[128] = {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+                            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+                            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
+                            
+/* 
+ * G.711 mu-Law 
  */
-static          int16_t
+
+static int16_t
 ulawdec(uint8_t x)
 {
-	int             sgn, exp, mant;
-	int             y;
+	int sgn, exp, mant;
+	int y;
 
-	x = ~x;			/* bits are sent reversed */
-	sgn = x & 0x80;
-	x &= 0x7F;
-	mant = (int) ((x & 0xF) << 1) | 0x21;	/* mantissa plus hidden bits */
-	exp = (int) ((x & 0x70) >> 4);	/* exponent */
-	mant <<= exp;
+	x = ~x;                         /* bits are sent reversed */
+	sgn = x & 0x80;                 /* sign bit */
+	mant = ((x & 0xF) << 1) | 0x21;	/* mantissa plus hidden bits */
+	exp = (x & 0x70) >> 4;          /* exponent */
+	mant = (mant << exp) - 0x21;    /* get mantissa, unraise */
 
-	/*
-	 * Subtract 33 from the 'raised output'
-	 * to get the normal output (14-bit),
-	 * and then convert the 14-bit output
-	 * to 16-bit
-	 */
-	y = (sgn ? (-mant + 33) : (mant - 33));
-	return (int16_t) (y << 2);
+	y = (sgn ? -mant : mant);
+	return (y << 2);
+}
+
+static uint8_t
+ulawenc(int16_t x)
+{
+        int     sgn, exp;
+        uint8_t out;
+        
+        x >>= 2;
+        sgn = x < 0;                               /* get sgn */
+        if (0 != sgn)
+                x = -x;                            /* get 13-bit magnitude */
+        if (x > 0x1FDE)
+                x = 0x1FDE;                        /* clip for raising... */
+                
+        x = (x + 0x21) >> 1;                       /* raise output -> 5 bits */
+        exp = expt[x >> 5];                        /* get exponent */
+        x >>= exp;                                 /* get mantissa */
+        
+        out = (sgn << 7) | (exp << 4) | (x & 0xF); /* pack */
+        return (~out);                             /* reverse */       
 }
 
 
-/*
- * G.711 A-Law (A-Law)
- *
- * G.711 A-Law is a 8-bit floating point representation
- * of 13-bit PCM samples, with a 4-bit mantissa and a 3-bit
- * exponent.
- *
- * This gives 5-bit (4 + hidden bit) mantissa precision for all samples,
- * so low samples (with zeros in the most-significant bits) get
- * more precision with this encoding than with normal 8-bit LPCM.
- *
- * For more information on G.711 A-Law:
- *   http://shannon.cm.nctu.edu.tw/comtheory/chap3.pdf
- *   http://en.wikipedia.org/wiki/G.711
+/* 
+ * G.711 A-Law 
  */
-static          int16_t
+
+static int16_t
 alawdec(uint8_t x)
 {
 	int             sgn, exp, mant;
 	int             y;
 
-	/*
-	 * The bits at even positions are inversed.
-	 * In addition, the sign bit is inversed too.
-	 */
-	x = ((~x & 0xD5) | (x & 0x2A));
+	x = (~x & 0xD5) | (x & 0x2A);   /* even bits (ex. sign) are reversed */
 	sgn = x & 0x80;
-	x &= 0x7F;
-	mant = (int) ((x & 0xF) << 1) | 0x21;
-	exp = (int) ((x & 0x70) >> 4);
+	mant = ((x & 0xF) << 1) | 0x21; /* mantissa plus hidden bits */
+	exp = (x & 0x70) >> 4;          /* exponent */
 
-	/*
-	 * Denormalized numbers? then remove hidden bit
-	 */
-	if (exp == 0)
-		mant &= ~0x20;
+	if (0 == exp)
+		mant &= ~0x20;          /* denormalized */
 	else
-		mant <<= (exp - 1);
+		mant <<= exp - 1;
 
 	y = (sgn ? -mant : mant);
-	return (int16_t) (y << 3);	/* convert 13-bit to 16-bit */
+	return (y << 3);
+}
+
+static  uint8_t
+alawenc(int16_t x)
+{
+        int sgn, exp;
+        uint8_t out;
+        
+        x >>= 4;
+        sgn = x < 0;                                /* get sgn */
+        if (0 != sgn)
+                x = -x;                             /* get 11-bit magnitude */
+                
+        exp = expt[x >> 4];                         /* get exponent */
+        if (0 != exp)
+                x >>= exp - 1;                      /* hidden bit */
+        
+        out = (sgn << 7) | (exp << 4) | (x & 0xF);  /* pack */
+        return ((~out & 0xD5) | (out & 0x2A));      /* reverse */   
 }
 
 static int
@@ -160,7 +174,7 @@ g711_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	len &= ~1;
 
 	n = len >> 1;
-	rem = (size_t) (r->soundLen) - (size_t) (r->pos);
+	rem = r->soundLen - r->pos;
 	bytesToRead = MIN(n, rem);
 	if (bytesToRead == 0)
 		return 0;
@@ -182,23 +196,24 @@ g711_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 		samples[i] = table[bytes[i]];
 	}
 
-	return (bytesRead << 1);/* bytesRead * 2 */
+	return (bytesRead << 1);
 }
 
 static int
 g711_seek(AIFF_Ref r, uint64_t pos)
 {
-	long            of;
-	uint32_t        b;
+	uint64_t        b;
+        OFF_T           of;
 
-	b = (uint32_t) pos * r->nChannels;
+	b = pos * r->nChannels;
 	if (b >= r->soundLen)
 		return 0;
-	of = (long) b;
-
-	if (fseek(r->fd, of, SEEK_CUR) < 0) {
+                
+	of = b;
+	if (FSEEKO(r->fd, of, SEEK_CUR) < 0) {
 		return -1;
 	}
+        
 	r->pos = b;
 	return 1;
 }
@@ -206,12 +221,12 @@ g711_seek(AIFF_Ref r, uint64_t pos)
 static int
 g711_read_float32(AIFF_Ref r, float *buffer, int nFrames)
 {
-	size_t          n = (size_t) nFrames, i, rem, bytesToRead, bytesRead;
+	size_t          n = nFrames, i, rem, bytesToRead, bytesRead;
 	uint8_t        *bytes;
 	int16_t        *table = r->pdata;
 	void           *buf;
 
-	rem = (size_t) (r->soundLen) - (size_t) (r->pos);
+	rem = r->soundLen - r->pos;
 	bytesToRead = MIN(n, rem);
 	if (bytesToRead == 0)
 		return 0;
@@ -229,29 +244,71 @@ g711_read_float32(AIFF_Ref r, float *buffer, int nFrames)
 
 	bytes = buf;
 	for (i = 0; i < bytesRead; ++i) {
-		buffer[i] = (float) (table[bytes[i]]) / 32768.0;
+		buffer[i] = ldexp(table[bytes[i]], -15);
 	}
 
-	return bytesRead;	/* bytesRead = framesRead (segmentSize = 1) */
+	return bytesRead;       /* = framesRead */
 }
 
+static int 
+g711_write_lpcm(AIFF_Ref w, void *inptr, size_t ilen, int readOnlyBuf)
+{
+        uint8_t  *outb;
+        int16_t  *inb;
+        uint8_t (*f)(int16_t);
+        int       i, n;
+        
+        if (2 != w->segmentSize)
+                return (-1);
+        
+        n = ilen >> 1;
+        
+	if (readOnlyBuf) {
+		if ((outb = AIFFBufAllocate(w, kAIFFBufExt, n)) == NULL)
+			return -1;
+	} else {
+		outb = inptr;
+	}
+        inb = inptr;
+        
+        switch (w->audioFormat) {
+        case AUDIO_FORMAT_ULAW: f = ulawenc; break;
+        case AUDIO_FORMAT_ALAW: f = alawenc; break;
+        default:
+                ASSERT(0);
+        }
+        
+        for (i = 0; i < n; i++) {
+                outb[i] = (*f)(inb[i]);
+        }
+        if (fwrite(outb, 1, n, w->fd) != (size_t)n) {
+                return (-1);
+        }
+        
+        w->nSamples += n;
+        w->sampleBytes += n;
+        w->len += n;
+        
+        return (1);
+}
 
-struct decoder  ulaw = {
+struct codec  ulaw = {
 	AUDIO_FORMAT_ULAW,
 	g711_ulaw_create,
 	g711_read_lpcm,
 	g711_read_float32,
+        g711_write_lpcm,
 	g711_seek,
 	g711_delete
 };
 
-struct decoder  alaw = {
+struct codec  alaw = {
 	AUDIO_FORMAT_ALAW,
 	g711_alaw_create,
 	g711_read_lpcm,
 	g711_read_float32,
+        g711_write_lpcm,
 	g711_seek,
 	g711_delete
 };
-
 

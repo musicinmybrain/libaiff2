@@ -34,7 +34,7 @@
 #include <libaiff/endian.h>
 #include "private.h"
 
-static struct decoder* decoders[] = {
+static struct codec* codecs[] = {
 	&lpcm,
 	&ulaw,
 	&alaw,
@@ -49,7 +49,7 @@ static int AIFF_WriteClose (AIFF_Ref);
 static int DoWriteSamples (AIFF_Ref, void *, size_t, int);
 static int Prepare (AIFF_Ref);
 static void Unprepare (AIFF_Ref);
-static struct decoder* FindDecoder (IFFType);
+static struct codec* FindCodec (IFFType);
 
 AIFF_Ref
 AIFF_OpenFile(const char *file, int flags)
@@ -100,19 +100,13 @@ AIFF_ReadOpen(const char *file, int flags)
 		return NULL;
 	}
 	r->flags = F_RDONLY | flags;
-	if (fread(&hdr, 1, 4, r->fd) < 4) {
+	if (fread(&hdr, 1, sizeof(hdr), r->fd) != sizeof(hdr)) {
 		fclose(r->fd);
 		free(r);
 		return NULL;
 	}
 	switch (hdr.hid) {
 	case AIFF_TYPE_IFF:
-		/* Continue reading the IFF header */
-		if (fread(&(hdr.len), 1, 8, r->fd) < 8) {
-			fclose(r->fd);
-			free(r);
-			return NULL;
-		}
 		if (hdr.len == 0) {
 			fclose(r->fd);
 			free(r);
@@ -213,15 +207,8 @@ AIFF_GetAudioFormat(AIFF_Ref r, uint64_t * nSamples, int *channels,
 	    || (F_WRONLY == (r->flags & F_WRONLY) && r->stat < 1))
 		return -1;
 
-	if (nSamples) {
-		if ( F_RDONLY == (r->flags & F_RDONLY) || 
-		    (F_WRONLY == (r->flags & F_WRONLY) && r->stat >= 3))
-			*nSamples = r->nSamples;
-		else if (r->stat == 2)
-			*nSamples = r->sampleBytes / r->segmentSize;
-		else
-			*nSamples = 0;
-	}
+	if (nSamples)
+		*nSamples = r->nSamples;
 	if (channels)
 		*channels = r->nChannels;
 	if (samplingRate)
@@ -238,7 +225,7 @@ static int
 Prepare (AIFF_Ref r)
 {
 	int res;
-	struct decoder *dec;
+	struct codec *dec;
 	
 	if (r->stat != 1) {
 		switch (r->format) {
@@ -251,14 +238,14 @@ Prepare (AIFF_Ref r)
 		}
 		if (res < 1)
 			return res;
-		if ((dec = FindDecoder(r->audioFormat)) == NULL)
+		if ((dec = FindCodec(r->audioFormat)) == NULL)
 			return -1;
 		if (dec->construct) {
 			if ((res = dec->construct(r)) < 1)
 				return res;
 		}
 
-		r->decoder = dec;
+		r->codec = dec;
 		r->stat = 1;
 	}
 
@@ -268,22 +255,22 @@ Prepare (AIFF_Ref r)
 static void
 Unprepare (AIFF_Ref r)
 {
-	struct decoder *dec;
+	struct codec *dec;
 	
 	if (r->stat == 1) {
-		dec = r->decoder;
+		dec = r->codec;
 		if (dec->destroy)
 			dec->destroy(r);
 	}
 	r->stat = 0;
 }
 
-static struct decoder*
-FindDecoder (IFFType fmt)
+static struct codec*
+FindCodec (IFFType fmt)
 {
-	struct decoder **dd, *d;
+	struct codec **dd, *d;
 	
-	for (dd = decoders; (d = *dd) != NULL; ++dd)
+	for (dd = codecs; (d = *dd) != NULL; ++dd)
 		if (d->fmt == fmt)
 			return d;
 	
@@ -293,11 +280,11 @@ FindDecoder (IFFType fmt)
 size_t 
 AIFF_ReadSamples(AIFF_Ref r, void *buffer, size_t len)
 {
-	struct decoder *dec;
+	struct codec *dec;
 	
 	if (!r || !(r->flags & F_RDONLY) || Prepare(r) < 1)
 		return 0;
-	dec = r->decoder;
+	dec = r->codec;
 	
 	return dec->read_lpcm(r, buffer, len);
 }
@@ -306,7 +293,7 @@ int
 AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int nSamplePoints)
 {
 	int res;
-	struct decoder *dec;
+	struct codec *dec;
 	
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
@@ -314,7 +301,7 @@ AIFF_ReadSamplesFloat(AIFF_Ref r, float *buffer, int nSamplePoints)
 		return 0;
 	if ((res = Prepare(r)) < 1)
 		return res;
-	dec = r->decoder;
+	dec = r->codec;
 	
 	return dec->read_float32(r, buffer, nSamplePoints);
 }
@@ -323,7 +310,7 @@ int
 AIFF_Seek(AIFF_Ref r, uint64_t framePos)
 {
 	int res = 0;
-	struct decoder *dec;
+	struct codec *dec;
 
 	if (!r || !(r->flags & F_RDONLY))
 		return -1;
@@ -332,7 +319,7 @@ AIFF_Seek(AIFF_Ref r, uint64_t framePos)
 	Unprepare(r);
 	if ((res = Prepare(r)) < 1)
 		return res;
-	dec = r->decoder;
+	dec = r->codec;
 
 	return dec->seek(r, framePos);
 }
@@ -565,10 +552,11 @@ err2:
 		 * If writing regular AIFF, make sure we
 		 * write big-endian data
 		 */
-		flags &= ~LPCM_LTE_ENDIAN;
+		flags &= ~(LPCM_LTE_ENDIAN | LPCM_BIG_ENDIAN);
 		flags |= LPCM_BIG_ENDIAN;
 	}
 
+        w->audioFormat = AUDIO_FORMAT_LPCM; /* default. */
 	w->flags = F_WRONLY | flags;
 
 	return w;
@@ -622,6 +610,18 @@ AIFF_CloneAttributes(AIFF_Ref w, AIFF_Ref r, int cloneMarkers)
 	return rval;
 }
 
+int
+AIFF_SetAudioEncoding(AIFF_Ref w, IFFType fmt)
+{
+        if (0 != w->stat)
+                return (0);
+        if (NULL == FindCodec(fmt))
+                return (-1);
+        
+        w->audioFormat = fmt;
+        return (1);
+}
+
 int 
 AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 {
@@ -637,22 +637,34 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	if (!w || !(w->flags & F_WRONLY))
 		return -1;
 	if (w->stat != 0)
-		return 0;
+		return (0);
 
 	if (w->flags & F_AIFC) {
-		/*
-		 * On AIFF-C we need to write the encoding plus a 
-		 * description string in PASCAL string format.
-		 */
+        
+                switch (w->audioFormat) {
+                case AUDIO_FORMAT_LPCM:
+                        if (w->flags & LPCM_LTE_ENDIAN)
+                                enc = AUDIO_FORMAT_sowt;
+                        else
+                                enc = AUDIO_FORMAT_LPCM;
+                        break;
+                
+                case AUDIO_FORMAT_ALAW:
+                case AUDIO_FORMAT_ULAW:
+                        enc = w->audioFormat;
+                        break;
+                
+                default:
+                        return (-1);
+                }
+           
 		ckLen += sizeof(enc);
-		if (w->flags & LPCM_LTE_ENDIAN)
-			enc = AUDIO_FORMAT_sowt;
-		else
-			enc = AUDIO_FORMAT_LPCM;
-
 		encName = get_aifx_enc_name(enc);
 		ckLen += PASCALOutGetLength(encName);
 	} else {
+                if (w->audioFormat != AUDIO_FORMAT_LPCM)
+                        return (-1);
+                        
 		enc = AUDIO_FORMAT_LPCM;
 	}
 	
@@ -701,7 +713,7 @@ AIFF_SetAudioFormat(AIFF_Ref w, int channels, double sRate, int bitsPerSample)
 	w->segmentSize = (bitsPerSample + 7) >> 3;
 	w->nChannels = channels;
 	w->samplingRate = sRate;
-	w->nSamples = 0;
+        w->codec = FindCodec(w->audioFormat);
 	w->stat = 1;
 
 	return 1;
@@ -734,46 +746,26 @@ AIFF_StartWritingSamples(AIFF_Ref w)
 
 	w->soundOffset = w->len + 8;
 	w->len += sizeof(chk) + sizeof(s);
+        w->nSamples = 0;
 	w->sampleBytes = 0;
 	w->stat = 2;
 
 	return 1;
 }
 
-static int 
+static int
 DoWriteSamples(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
 {
-	int 	 n;
-	uint32_t sampleBytes;
-	void 	*buffer;
-	
-	if (!w || !(w->flags & F_WRONLY))
+        struct codec    *c = w->codec;
+        
+        if (NULL == w || !(w->flags & F_WRONLY))
 		return -1;
 	if (w->stat != 2)
 		return 0;
+        
+        ASSERT(NULL != c);
 
-	n = len;
-	if ((n % w->segmentSize) != 0)
-		return 0;
-	n /= w->segmentSize;
-
-	if (readOnlyBuf) {
-		if ((buffer = AIFFBufAllocate(w, kAIFFBufExt, len)) == NULL)
-			return -1;
-	} else {
-		buffer = samples;
-	}
-
-	lpcm_swap_samples(w->segmentSize, w->flags, samples, buffer, n);
-
-	if (fwrite(buffer, w->segmentSize, n, w->fd) != (size_t)n) {
-		return -1;
-	}
-	sampleBytes = n * w->segmentSize;
-	w->sampleBytes += sampleBytes;
-	w->len += sampleBytes;
-
-	return 1;
+        return ((*c->write_lpcm)(w, samples, len, readOnlyBuf));
 }
 
 int
@@ -788,6 +780,7 @@ AIFF_WriteSamplesRaw(AIFF_Ref w, void *samples, size_t len)
 		return (-1);
 	}
 
+        /* FIXME w->nSamples */
 	w->sampleBytes += len;
 	w->len += len;
 
@@ -896,7 +889,7 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 		return -1;
 	}
 
-	numSampleFrames = (w->sampleBytes / w->nChannels) / w->segmentSize;
+	numSampleFrames = w->nSamples / w->nChannels;
 	numSampleFrames = ARRANGE_BE32(numSampleFrames);
 
 	/* Write out */
@@ -912,7 +905,6 @@ AIFF_EndWritingSamples(AIFF_Ref w)
 	if (fseek(w->fd, of, SEEK_SET) < 0) {
 		return -1;
 	}
-	w->nSamples = numSampleFrames * w->nChannels;
 	w->stat = 3;
 
 	return 1;

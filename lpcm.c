@@ -125,11 +125,11 @@ lpcm_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 	size_t bytes_in;
 	size_t bytesToRead;
 
-	n = (int) len;
+	n = len;
 	len -= n % r->segmentSize;
 	n /= r->segmentSize;
 
-	slen = (size_t) (r->soundLen) - (size_t) (r->pos);
+	slen = r->soundLen - r->pos;
 	bytesToRead = MIN(len, slen);
 
 	if (bytesToRead == 0)
@@ -150,15 +150,15 @@ lpcm_read_lpcm(AIFF_Ref r, void *buffer, size_t len)
 static int 
 lpcm_seek(AIFF_Ref r, uint64_t pos)
 {
-	long of;
-	uint32_t b;
+        OFF_T           of;
+        uint64_t        b;
 
-	b = (uint32_t) pos * r->nChannels * r->segmentSize;
+	b = pos * r->nChannels * r->segmentSize;
 	if (b >= r->soundLen)
 		return 0;
-	of = (long) b;
-
-	if (fseek(r->fd, of, SEEK_CUR) < 0) {
+                
+	of = b;
+	if (FSEEKO(r->fd, of, SEEK_CUR) < 0) {
 		return -1;
 	}
 	r->pos = b;
@@ -265,12 +265,45 @@ lpcm_read_float32(AIFF_Ref r, float *buffer, int nSamples)
 	return nSamplesRead;
 }
 
+static int 
+lpcm_write_lpcm(AIFF_Ref w, void *samples, size_t len, int readOnlyBuf)
+{
+	size_t   n, sampleBytes;
+	void 	*buffer;
+	
+	n = len;
+	if ((n % w->segmentSize) != 0)
+		return 0;
+	n /= w->segmentSize;
 
-struct decoder lpcm = {
+	if (readOnlyBuf) {
+		if ((buffer = AIFFBufAllocate(w, kAIFFBufExt, len)) == NULL)
+			return -1;
+	} else {
+		buffer = samples;
+	}
+
+	lpcm_swap_samples(w->segmentSize, w->flags, samples, buffer, n);
+
+	if (fwrite(buffer, w->segmentSize, n, w->fd) != n) {
+		return -1;
+	}
+        
+	sampleBytes = n * w->segmentSize;
+        
+        w->nSamples += n;
+	w->sampleBytes += sampleBytes;
+	w->len += sampleBytes;
+
+	return 1;
+}
+
+struct codec lpcm = {
 	AUDIO_FORMAT_LPCM,
 	NULL,
 	lpcm_read_lpcm,
 	lpcm_read_float32,
+        lpcm_write_lpcm,
 	lpcm_seek,
 	NULL
 };
